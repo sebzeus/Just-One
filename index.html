@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Just One 🎯</title>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#FFF8F0; --card:#FFFFFF; --accent:#FF6B35; --accent2:#FFD166;
+    --accent3:#06D6A0; --accent4:#118AB2; --red:#EF476F;
+    --text:#2D3047; --muted:#8892A4;
+    --shadow:0 8px 32px rgba(45,48,71,0.13); --radius:20px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;width:500px;height:500px;background:radial-gradient(circle,#FFD16644 0%,transparent 70%);top:-100px;right:-100px;border-radius:50%;pointer-events:none;z-index:0;}
+  body::after{content:'';position:fixed;width:400px;height:400px;background:radial-gradient(circle,#06D6A033 0%,transparent 70%);bottom:-80px;left:-80px;border-radius:50%;pointer-events:none;z-index:0;}
+  .app{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:20px 16px 40px;}
+  header{text-align:center;padding:24px 0 16px;}
+  header h1{font-family:'Lilita One',cursive;font-size:clamp(2.2rem,8vw,3.2rem);color:var(--accent);text-shadow:3px 3px 0 #FFD166,6px 6px 0 #FFD16633;line-height:1;}
+  header p{color:var(--muted);font-size:.95rem;margin-top:6px;font-weight:600;}
+  .scorebar{display:flex;justify-content:center;gap:12px;margin:16px 0;flex-wrap:wrap;}
+  .score-pill{background:white;border-radius:50px;padding:8px 20px;font-weight:800;font-size:.9rem;box-shadow:var(--shadow);display:flex;align-items:center;gap:6px;}
+  .score-pill.correct{color:var(--accent3);} .score-pill.skipped{color:var(--muted);} .score-pill.wrong{color:var(--red);}
+  .phase-badge{text-align:center;margin-bottom:12px;}
+  .phase-badge span{display:inline-block;background:var(--accent);color:white;font-weight:800;font-size:.8rem;letter-spacing:1.5px;text-transform:uppercase;padding:5px 16px;border-radius:50px;}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 24px;margin-bottom:16px;animation:slideUp .4s cubic-bezier(.22,1,.36,1);}
+  @keyframes slideUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+  .mystery-word{font-family:'Lilita One',cursive;font-size:clamp(2.4rem,10vw,3.8rem);line-height:1.1;background:linear-gradient(135deg,var(--accent),var(--red));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .clue-display-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:8px 0;}
+  .clue-chip{padding:10px 20px;border-radius:50px;font-weight:800;font-size:1.1rem;text-transform:uppercase;letter-spacing:1px;animation:popIn .3s cubic-bezier(.22,1,.36,1) both;}
+  .clue-chip.active{background:linear-gradient(135deg,#118AB2,#06D6A0);color:white;box-shadow:0 4px 14px rgba(6,214,160,.3);}
+  .clue-chip.removed{background:#F1F3F5;color:#CCC;text-decoration:line-through;font-style:italic;font-size:.9rem;}
+  @keyframes popIn{from{opacity:0;transform:scale(.7);}to{opacity:1;transform:scale(1);}}
+  .guess-input{width:100%;max-width:300px;padding:14px 20px;border:3px solid var(--accent2);border-radius:50px;font-family:'Nunito',sans-serif;font-size:1.2rem;font-weight:800;text-align:center;color:var(--text);outline:none;background:white;box-shadow:0 4px 16px rgba(255,209,102,.3);text-transform:uppercase;transition:all .2s;}
+  .guess-input:focus{border-color:var(--accent);box-shadow:0 4px 20px rgba(255,107,53,.2);}
+  .result-banner{text-align:center;padding:16px;border-radius:var(--radius);margin-top:8px;animation:popIn .4s cubic-bezier(.22,1,.36,1);}
+  .result-banner.correct-result{background:#E8FDF5;border:2px solid var(--accent3);}
+  .result-banner.wrong-result{background:#FFF0F3;border:2px solid var(--red);}
+  .result-banner.skip-result{background:#F8FAFC;border:2px solid #DDD;}
+  .result-emoji{font-size:2.8rem;display:block;} .result-text{font-weight:800;font-size:1.1rem;margin-top:4px;} .result-subtext{font-size:.85rem;color:var(--muted);margin-top:4px;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;justify-content:center;}
+  .btn{padding:12px 24px;border-radius:50px;border:none;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:800;font-size:.95rem;transition:all .18s;display:flex;align-items:center;gap:6px;}
+  .btn:active{transform:scale(.96);}
+  .btn-primary{background:var(--accent);color:white;box-shadow:0 4px 14px rgba(255,107,53,.35);}
+  .btn-primary:hover{background:#e85a26;}
+  .btn-secondary{background:white;color:var(--text);border:2px solid #E8ECF0;}
+  .btn-secondary:hover{background:#F8FAFC;}
+  .btn-success{background:var(--accent3);color:white;box-shadow:0 4px 14px rgba(6,214,160,.35);}
+  .btn-danger{background:var(--red);color:white;}
+  .btn-blue{background:var(--accent4);color:white;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important;}
+  .setup-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 24px;animation:slideUp .4s cubic-bezier(.22,1,.36,1);}
+  .setup-card h2{font-family:'Lilita One',cursive;font-size:1.5rem;margin-bottom:4px;}
+  .setup-card > p{color:var(--muted);font-size:.9rem;margin-bottom:20px;}
+  .player-count-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+  .count-btn{width:52px;height:52px;border-radius:14px;border:2.5px solid #E8ECF0;background:white;font-family:'Lilita One',cursive;font-size:1.3rem;cursor:pointer;transition:all .18s;color:var(--text);}
+  .count-btn.selected{border-color:var(--accent);background:#FFF3EE;color:var(--accent);box-shadow:0 4px 12px rgba(255,107,53,.2);}
+  .how-to{background:#F8FAFC;border-radius:14px;padding:16px;margin-bottom:20px;}
+  .how-to h3{font-size:.82rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+  .how-to ol{padding-left:18px;font-size:.9rem;line-height:1.8;font-weight:600;}
+  .loading-state{text-align:center;padding:32px 16px;color:var(--muted);}
+  .spinner{width:36px;height:36px;border:4px solid #E8ECF0;border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .word-counter{text-align:center;font-size:.8rem;font-weight:800;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;}
+  .devin-badge{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--accent2),var(--accent));color:white;font-weight:800;font-size:.85rem;padding:6px 14px;border-radius:50px;margin-bottom:12px;}
+  .sep{height:1px;background:#F0F2F5;margin:16px 0;}
+  .category-select{width:100%;padding:10px 14px;border:2.5px solid #E8ECF0;border-radius:12px;font-family:'Nunito',sans-serif;font-size:.95rem;font-weight:700;color:var(--text);background:white;outline:none;cursor:pointer;margin-bottom:16px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M6 8L0 0h12z' fill='%238892A4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
+  .field-label{font-size:.85rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;}
+  .mode-selector{display:flex;gap:12px;margin-bottom:20px;}
+  .mode-btn{flex:1;padding:16px 12px;border-radius:16px;border:2.5px solid #E8ECF0;background:white;cursor:pointer;text-align:center;transition:all .2s;font-family:'Nunito',sans-serif;}
+  .mode-btn.selected{border-color:var(--accent);background:#FFF3EE;}
+  .mode-btn .mode-icon{font-size:2rem;display:block;margin-bottom:6px;}
+  .mode-btn .mode-label{font-weight:800;font-size:.95rem;color:var(--text);display:block;}
+  .mode-btn .mode-desc{font-size:.78rem;color:var(--muted);font-weight:600;display:block;margin-top:2px;}
+  .room-code{font-family:'Lilita One',cursive;font-size:3rem;color:var(--accent);letter-spacing:8px;text-align:center;background:#FFF3EE;border-radius:16px;padding:16px;margin:12px 0;}
+  .code-input{width:100%;padding:14px;border:3px solid var(--accent2);border-radius:14px;font-family:'Lilita One',cursive;font-size:2rem;text-align:center;letter-spacing:6px;color:var(--text);outline:none;text-transform:uppercase;background:white;}
+  .players-list{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;}
+  .player-chip{padding:6px 14px;border-radius:50px;font-weight:800;font-size:.85rem;background:#F0FDF8;color:var(--accent3);border:2px solid var(--accent3);}
+  .player-chip.host{background:#FFF3EE;color:var(--accent);border-color:var(--accent);}
+  .waiting-dots span{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin:0 3px;animation:bounce .8s infinite;}
+  .waiting-dots span:nth-child(2){animation-delay:.15s;} .waiting-dots span:nth-child(3){animation-delay:.3s;}
+  @keyframes bounce{0%,80%,100%{transform:scale(.8);opacity:.5;}40%{transform:scale(1.2);opacity:1;}}
+  .history-badge{display:inline-flex;align-items:center;gap:6px;background:#F0F2F5;border-radius:50px;padding:4px 12px;font-size:.78rem;font-weight:800;color:var(--muted);}
+  .clue-input-big{width:100%;padding:14px;border:2.5px solid #E8ECF0;border-radius:14px;font-family:'Nunito',sans-serif;font-size:1.3rem;font-weight:700;text-align:center;color:var(--text);outline:none;background:#F8FAFC;text-transform:uppercase;transition:all .2s;}
+  .clue-input-big:focus{border-color:var(--accent4);background:white;}
+  .confetti-wrap{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999;}
+  .confetti-piece{position:absolute;width:10px;height:10px;border-radius:2px;animation:confettiFall 1.4s ease-in forwards;}
+  @keyframes confettiFall{from{transform:translateY(-20px) rotate(0deg);opacity:1;}to{transform:translateY(110vh) rotate(720deg);opacity:0;}}
+  .waiting-card{text-align:center;padding:32px 20px;}
+  .big-emoji{font-size:3.5rem;margin-bottom:12px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header><h1>Just One 🎯</h1><p>Le jeu des indices coopératif !</p></header>
+  <div id="root"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyBlOA4KavELxOupJYwmqrX8AAP3gHOkDew",
+  authDomain:"just-one-2c2f1.firebaseapp.com",
+  databaseURL:"https://just-one-2c2f1-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:"just-one-2c2f1",
+  storageBucket:"just-one-2c2f1.firebasestorage.app",
+  messagingSenderId:"751950060490",
+  appId:"1:751950060490:web:6c97e4052bd134a0f2cd33"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+window._fb = { db, ref, set, get, onValue, update };
+window._firebaseReady = true;
+if (window._onFirebaseReady) window._onFirebaseReady();
+</script>
+
+<script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const CATEGORIES = ['Tous','Animaux','Nourriture','Sport','Cinéma & Séries','Géographie','Métiers','Objets du quotidien','Histoire & Culture'];
+const FALLBACK = {
+  'Tous':['PIANO','REQUIN','VOLCAN','ASTRONAUTE','CHOCOLAT','BIBLIOTHEQUE','DAUPHIN','GIRAFE','PARACHUTE','CHAMPIGNON','SATELLITE','ACCORDEON','PIEUVRE','TONNERRE','BOUGIE','CACTUS','TOURNESOL','FANTOME','TRAMWAY','BAOBAB','LICORNE','KOALA','TRAMPOLINE','CAMELEON','BOOMERANG'],
+  'Animaux':['GIRAFE','DAUPHIN','PIEUVRE','FLAMANT','TATOU','ORNITHORYNQUE','CACHALOT','PANGOLIN','OKAPI','AXOLOTL','CAPYBARA','QUOKKA','TAPIR','PANDA','NARVAL','FENNEC','WOMBAT','LEMUR','TAMANOIR','DUGONG'],
+  'Nourriture':['CROISSANT','PAELLA','SUSHIS','GUACAMOLE','BRIOCHE','TIRAMISU','SOUFFLE','BOUILLABAISSE','CREPE','MACARONS','TACOS','FONDUE','RATATOUILLE','PROFITEROLE','GAZPACHO','CANNOLI','SAMOSA','BIBIMBAP','BAKLAVA','CHURROS'],
+  'Sport':['TENNIS','ESCRIME','PLONGEON','BOBSLEIGH','TRIATHLON','KAYAK','CURLING','BIATHLON','SQUASH','POLO','SUMO','KITESURF','FLECHETTES','CROQUET','PENTATHLON','LUGE','SKELETON','PELOTE','KABADDI','SEPAK'],
+  'Cinéma & Séries':['MATRIX','TITANIC','BATMAN','INCEPTION','AVATAR','FROZEN','SHREK','INTERSTELLAR','PARASITE','GODFATHER','CASABLANCA','GLADIATOR','JOKER','AVENGERS','ROCKY','ALIEN','PSYCHOSE','VERTIGO','INDIANA','SCARFACE'],
+  'Géographie':['AMAZONIE','ISLANDE','FUJI','SAHARA','VENISE','MARRAKECH','PATAGONIE','MALDIVES','YELLOWSTONE','GALAPAGOS','KILIMANJARO','EVEREST','AMAZONE','SIBERIE','TIBET','FIORDS','ATACAMA','OKAVANGO','BALKANS','KAMTCHATKA'],
+  'Métiers':['ARCHIVISTE','CERAMISTE','LUTINIER','FROMAGER','HORLOGER','METEOROLOGUE','SOMMELIER','ASTRONOME','MARAICHER','ZOOLOGUE','LUTHIER','SOUFFLEUR','BOURRELIER','TANNEUR','NOTAIRE','GLACIOLOGUE','CARTOGRAPHE','ENLUMINEUR','SAGEFEMME','CRIEUR'],
+  'Objets du quotidien':['ASPIRATEUR','THERMOS','CISEAUX','BOUSSOLE','MICROSCOPE','BAROMETRE','SABLIER','LOUPE','COMPAS','CADENAS','ENTONNOIR','BALANCIER','PINCE','FOURCHETTE','PASSOIRE','DECAPSULEUR','SPATULE','AGRAFEUSE','RAPPORTEUR','TROMBONE'],
+  'Histoire & Culture':['RENAISSANCE','CLEOPATRE','VERSAILLES','POMPEI','STONEHENGE','COLISEE','MACHUPICHU','LEONARD','NAPOLEON','REMBRANDT','MOZART','ARISTOTE','BOUDDHA','VIKING','AZTEQUE','PHARAON','TROIE','CRUSADES','CONQUISTADOR','TEMPLIER'],
+};
+
+// ============================================================
+// STATE
+// ============================================================
+const S = {
+  mode:null, screen:'home',
+  // local
+  players:4, category:'Tous',
+  devinIndex:0, roundNum:0, maxRounds:13,
+  currentWord:'', clues:[], clueOrder:[], currentClueStep:0,
+  validClues:[], guess:'', roundResult:null,
+  score:{correct:0,wrong:0,skip:0},
+  loading:false, wordList:[], wordIndex:0,
+  // multi
+  roomCode:'', myName:'', isHost:false,
+  roomData:null, fbUnsubscribe:null,
+};
+
+// ============================================================
+// HISTORY (localStorage)
+// ============================================================
+function getHistory(){ try{ return JSON.parse(localStorage.getItem('jo_hist')||'[]'); }catch{ return []; } }
+function addHistory(words){ const h=[...new Set([...getHistory(),...words.map(w=>w.toUpperCase())])]; localStorage.setItem('jo_hist',JSON.stringify(h)); }
+function clearHistory(){ localStorage.removeItem('jo_hist'); }
+
+// ============================================================
+// AI WORDS
+// ============================================================
+async function fetchWords(category, count=25){
+  const hist=getHistory();
+  const histNote=hist.length>0?`\nMots DÉJÀ joués à NE PAS reproduire : ${hist.slice(-120).join(', ')}`:'';
+  const catStr=category==='Tous'?'variés (animaux, nourriture, lieux, objets, célébrités, etc.)':`sur le thème "${category}"`;
+  const prompt=`Génère exactement ${count} mots ${catStr} pour jouer au jeu Just One.\nCes mots doivent être :\n- Des noms communs ou propres bien connus\n- Ni trop faciles ni trop difficiles\n- En MAJUSCULES, sans accent si possible, en français\n${histNote}\n\nRéponds UNIQUEMENT avec un objet JSON : {"words":["MOT1","MOT2",...]}\nRien d'autre.`;
+  const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})});
+  const d=await r.json();
+  const t=d.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
+  return JSON.parse(t).words||[];
+}
+
+// ============================================================
+// RENDER ROUTER
+// ============================================================
+function render(){
+  const root=document.getElementById('root');
+  root.innerHTML='';
+  const m={
+    home:renderHome, setup_local:renderSetupLocal, setup_multi:renderSetupMulti,
+    room_lobby:renderRoomLobby, clues_intro:renderCluesIntro,
+    pass_phone:renderPassPhone, clue_turn:renderClueTurn,
+    clue_wait:renderClueWait, clue_write_multi:renderClueWriteMulti,
+    compare:renderCompare, guess:renderGuess, result:renderResult, gameover:renderGameover,
+  };
+  root.appendChild((m[S.screen]||renderHome)());
+}
+
+// ============================================================
+// SCREENS
+// ============================================================
+
+function renderHome(){
+  const hist=getHistory();
+  const el=div();
+  el.innerHTML=`
+    <div class="setup-card">
+      <h2>Bienvenue ! 👋</h2>
+      <p>Choisissez votre mode de jeu</p>
+      <div class="mode-selector">
+        <div class="mode-btn ${S.mode==='local'?'selected':''}" id="ml">
+          <span class="mode-icon">📱</span><span class="mode-label">Un téléphone</span><span class="mode-desc">On se le passe</span>
+        </div>
+        <div class="mode-btn ${S.mode==='multi'?'selected':''}" id="mm">
+          <span class="mode-icon">🌐</span><span class="mode-label">Multijoueur</span><span class="mode-desc">Chacun son téléphone</span>
+        </div>
+      </div>
+      ${hist.length>0?`<div style="display:flex;align-items:center;justify-content:space-between;background:#F8FAFC;border-radius:12px;padding:10px 14px;margin-bottom:16px;">
+        <span class="history-badge">📚 ${hist.length} mots mémorisés</span>
+        <button class="btn btn-danger" id="clearBtn" style="padding:6px 14px;font-size:.8rem;">🗑️ Effacer</button>
+      </div>`:''}
+      <div class="how-to">
+        <h3>📖 Rappel des règles</h3>
+        <ol>
+          <li>Un <strong>Devin</strong> ferme les yeux</li>
+          <li>Les autres voient le mot et écrivent chacun <strong>un indice</strong></li>
+          <li>Les indices <strong>identiques sont éliminés</strong></li>
+          <li>Le Devin voit les indices restants et <strong>devine</strong></li>
+          <li>✅ Bonne réponse = +1 &nbsp;❌ Mauvaise = –1 mot</li>
+        </ol>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="continueBtn" ${!S.mode?'disabled':''}>Continuer →</button>
+      </div>
+    </div>`;
+  el.querySelector('#ml').onclick=()=>{S.mode='local';render();};
+  el.querySelector('#mm').onclick=()=>{S.mode='multi';render();};
+  el.querySelector('#continueBtn').onclick=()=>{S.screen=S.mode==='local'?'setup_local':'setup_multi';render();};
+  const cb=el.querySelector('#clearBtn');
+  if(cb) cb.onclick=()=>{if(confirm('Effacer l\'historique des mots joués ?')){clearHistory();render();}};
+  return el;
+}
+
+function renderSetupLocal(){
+  const el=div();
+  el.innerHTML=`
+    <div class="setup-card">
+      <h2>Partie locale 📱</h2>
+      <p>Un seul téléphone, on se le passe à tour de rôle</p>
+      <label class="field-label">Nombre de joueurs</label>
+      <div class="player-count-btns" id="cntBtns"></div>
+      <label class="field-label">Catégorie</label>
+      <select class="category-select" id="cat">${CATEGORIES.map(c=>`<option value="${c}" ${c===S.category?'selected':''}>${c}</option>`).join('')}</select>
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="back">← Retour</button>
+        <button class="btn btn-primary" id="start">🚀 Lancer</button>
+      </div>
+    </div>`;
+  const cb=el.querySelector('#cntBtns');
+  [3,4,5,6,7,8].forEach(n=>{const b=document.createElement('button');b.className='count-btn'+(n===S.players?' selected':'');b.textContent=n;b.onclick=()=>{S.players=n;render();};cb.appendChild(b);});
+  el.querySelector('#cat').onchange=e=>{S.category=e.target.value;};
+  el.querySelector('#back').onclick=()=>{S.screen='home';render();};
+  el.querySelector('#start').onclick=async()=>{
+    S.screen='clues_intro';S.loading=true;S.roundNum=1;S.devinIndex=0;S.score={correct:0,wrong:0,skip:0};render();
+    try{S.wordList=await fetchWords(S.category,25);}catch{S.wordList=shuffle([...(FALLBACK[S.category]||FALLBACK['Tous'])]);}
+    S.wordIndex=0;S.currentWord=S.wordList[0];addHistory([S.currentWord]);initClueOrder();S.loading=false;render();
+  };
+  return el;
+}
+
+function renderSetupMulti(){
+  const el=div();
+  el.innerHTML=`
+    <div class="setup-card">
+      <h2>Multijoueur 🌐</h2>
+      <p>Chaque joueur sur son propre téléphone</p>
+      <label class="field-label">Ton prénom</label>
+      <input type="text" id="nameIn" class="clue-input-big" style="margin-bottom:16px;" placeholder="Ex: Sébastien" maxlength="15" value="${S.myName||''}">
+      <label class="field-label">Catégorie</label>
+      <select class="category-select" id="cat">${CATEGORIES.map(c=>`<option value="${c}" ${c===S.category?'selected':''}>${c}</option>`).join('')}</select>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-primary" style="flex:1;justify-content:center;" id="createBtn">➕ Créer une salle</button>
+        <button class="btn btn-secondary" style="flex:1;justify-content:center;" id="joinToggle">🔑 Rejoindre</button>
+      </div>
+      <div id="joinArea" style="display:none;margin-top:16px;">
+        <label class="field-label">Code de la salle</label>
+        <input type="text" id="codeIn" class="code-input" placeholder="XXXX" maxlength="4" autocomplete="off">
+        <div class="btn-row"><button class="btn btn-blue" id="joinBtn">Rejoindre →</button></div>
+      </div>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn btn-secondary" id="back">← Retour</button>
+      </div>
+    </div>`;
+  el.querySelector('#cat').onchange=e=>{S.category=e.target.value;};
+  el.querySelector('#back').onclick=()=>{S.screen='home';render();};
+  el.querySelector('#joinToggle').onclick=()=>{el.querySelector('#joinArea').style.display='block';};
+  el.querySelector('#createBtn').onclick=async()=>{
+    const name=el.querySelector('#nameIn').value.trim();
+    if(!name){alert('Entre ton prénom !');return;}
+    S.myName=name;S.isHost=true;S.roomCode=randomCode();
+    await createRoom();S.screen='room_lobby';render();
+  };
+  el.querySelector('#joinBtn').onclick=async()=>{
+    const name=el.querySelector('#nameIn').value.trim();
+    const code=el.querySelector('#codeIn').value.trim().toUpperCase();
+    if(!name){alert('Entre ton prénom !');return;}
+    if(code.length!==4){alert('Code à 4 lettres !');return;}
+    S.myName=name;S.isHost=false;S.roomCode=code;
+    const ok=await joinRoom(code,name);
+    if(!ok){alert('Salle introuvable ou partie déjà commencée !');return;}
+    S.screen='room_lobby';render();
+  };
+  return el;
+}
+
+function renderRoomLobby(){
+  const rd=S.roomData||{};
+  const players=Object.values(rd.players||{});
+  const el=div();
+  el.innerHTML=`
+    <div class="card" style="text-align:center;">
+      <div style="font-size:.8rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Code de la salle</div>
+      <div class="room-code">${S.roomCode}</div>
+      <div style="font-size:.85rem;color:var(--muted);font-weight:600;margin-bottom:16px;">Partage ce code avec tes amis 👆</div>
+      <div style="font-size:.82rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Joueurs connectés (${players.length})</div>
+      <div class="players-list" style="justify-content:center;">${players.map(p=>`<div class="player-chip ${p.host?'host':''}">${p.host?'👑 ':''}${p.name}</div>`).join('')}</div>
+      ${S.isHost?`
+        <div class="sep"></div>
+        <label class="field-label" style="text-align:left;">Nombre de manches</label>
+        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px;" id="rndBtns">
+          ${[8,13,18].map(n=>`<button class="count-btn ${(rd.maxRounds||13)===n?'selected':''}" data-r="${n}">${n}</button>`).join('')}
+        </div>
+        <button class="btn btn-primary" id="startMulti" style="width:100%;justify-content:center;" ${players.length<2?'disabled':''}>🚀 Lancer la partie (${players.length} joueurs)</button>
+      `:`<div class="sep"></div><div class="waiting-dots"><span></span><span></span><span></span></div><div style="font-weight:700;color:var(--muted);margin-top:10px;">En attente que l'hôte lance la partie…</div>`}
+    </div>`;
+  if(S.isHost){
+    el.querySelectorAll('#rndBtns .count-btn').forEach(b=>{b.onclick=()=>{const{db,ref,update}=window._fb;update(ref(db,`rooms/${S.roomCode}`),{maxRounds:parseInt(b.dataset.r)});};});
+    el.querySelector('#startMulti').onclick=()=>startMultiGame();
+  }
+  return el;
+}
+
+function renderCluesIntro(){
+  if(S.loading) return renderLoading();
+  const devin=`Joueur ${S.devinIndex+1}`;
+  const first=S.clueOrder[0];
+  const el=div();
+  el.innerHTML=`
+    <div class="word-counter">Manche ${S.roundNum} / ${S.maxRounds}</div>
+    <div class="phase-badge"><span>✍️ Phase indices</span></div>
+    ${scoreBar()}
+    <div class="card" style="text-align:center;">
+      <div style="font-size:3.5rem;margin-bottom:10px;">🙈</div>
+      <div style="font-family:'Lilita One',cursive;font-size:1.6rem;color:var(--red);margin-bottom:8px;">${devin}, ferme les yeux !</div>
+      <div style="font-size:.95rem;font-weight:600;color:var(--muted);margin-bottom:20px;line-height:1.6;">Éloigne-toi ou regarde ailleurs.<br>Les autres vont entrer leurs indices à tour de rôle.</div>
+      <div style="background:#FFF8F0;border-radius:14px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:.75rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Premier à jouer</div>
+        <div style="font-family:'Lilita One',cursive;font-size:1.4rem;color:var(--accent);">Joueur ${first+1} 👇</div>
+      </div>
+      <button class="btn btn-primary" id="startClues" style="width:100%;justify-content:center;">✅ ${devin} ne regarde plus — Commencer</button>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn btn-secondary" id="skipRound" style="font-size:.85rem;">⏭️ Passer ce mot</button>
+        <button class="btn btn-secondary" id="changeWord" style="font-size:.85rem;">🔄 Changer de mot</button>
+      </div>
+    </div>`;
+  el.querySelector('#startClues').onclick=()=>{S.currentClueStep=0;S.screen='clue_turn';render();};
+  el.querySelector('#skipRound').onclick=()=>{S.roundResult='skip';S.score.skip++;nextRoundLocal();};
+  el.querySelector('#changeWord').onclick=async()=>{
+    S.loading=true;render();
+    const hist=getHistory();
+    let found=false;
+    for(let i=1;i<S.wordList.length;i++){
+      const idx=(S.wordIndex+i)%S.wordList.length;
+      if(!hist.includes(S.wordList[idx])){S.wordIndex=idx;S.currentWord=S.wordList[idx];found=true;break;}
+    }
+    if(!found){
+      try{S.wordList=await fetchWords(S.category,25);}catch{S.wordList=shuffle([...(FALLBACK[S.category]||FALLBACK['Tous'])]);}
+      S.wordIndex=0;S.currentWord=S.wordList[0];
+    }
+    addHistory([S.currentWord]);initClueOrder();S.loading=false;render();
+  };
+  return el;
+}
+
+function renderPassPhone(){
+  const next=S.clueOrder[S.currentClueStep];
+  const el=div();
+  el.innerHTML=`
+    <div class="word-counter">Manche ${S.roundNum} / ${S.maxRounds}</div>
+    <div class="phase-badge"><span>✍️ Phase indices</span></div>
+    ${scoreBar()}
+    <div class="card" style="text-align:center;">
+      <div style="font-size:3rem;margin-bottom:12px;">📱</div>
+      <div style="font-family:'Lilita One',cursive;font-size:1.5rem;color:var(--text);margin-bottom:8px;">Passe le téléphone !</div>
+      <div style="font-size:.95rem;font-weight:600;color:var(--muted);margin-bottom:24px;line-height:1.6;">Remets le téléphone face cachée,<br>puis donne-le au prochain joueur.</div>
+      <div style="background:linear-gradient(135deg,#FF6B35,#EF476F);border-radius:18px;padding:20px;margin-bottom:24px;color:white;">
+        <div style="font-size:.75rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;opacity:.8;margin-bottom:6px;">C'est au tour de</div>
+        <div style="font-family:'Lilita One',cursive;font-size:2rem;">Joueur ${next+1} 👋</div>
+      </div>
+      <button class="btn btn-primary" id="ready" style="width:100%;justify-content:center;font-size:1.05rem;">👁️ Je suis Joueur ${next+1} — Voir le mot</button>
+    </div>`;
+  el.querySelector('#ready').onclick=()=>{S.screen='clue_turn';render();};
+  return el;
+}
+
+function renderClueTurn(){
+  const step=S.currentClueStep, playerIdx=S.clueOrder[step], total=S.clueOrder.length, isLast=step===total-1;
+  const el=div();
+  el.innerHTML=`
+    <div class="word-counter">Manche ${S.roundNum} / ${S.maxRounds}</div>
+    <div class="phase-badge"><span>✍️ Joueur ${playerIdx+1} — Indice ${step+1}/${total}</span></div>
+    ${scoreBar()}
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <div style="background:linear-gradient(135deg,var(--accent),var(--red));color:white;font-family:'Lilita One',cursive;font-size:1.1rem;padding:8px 18px;border-radius:50px;">Joueur ${playerIdx+1}</div>
+        <div style="font-size:.85rem;font-weight:600;color:var(--muted);">écrit son indice secret</div>
+      </div>
+      <div style="background:#F8FAFC;border-radius:14px;padding:16px;margin-bottom:16px;text-align:center;">
+        <div style="font-size:.75rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">🎯 Mot à faire deviner</div>
+        <div class="mystery-word">${S.currentWord}</div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div class="field-label">💡 Ton indice (1 seul mot) :</div>
+        <input type="text" id="clueIn" class="clue-input-big" placeholder="..." maxlength="20" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div style="background:#FFF8F0;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:.82rem;color:#7B5800;font-weight:600;line-height:1.5;">
+        ⚠️ Un seul mot • Pas le mot secret • Pas de déclinaison
+      </div>
+      <button class="btn btn-primary" id="confirmClue" style="width:100%;justify-content:center;" disabled>
+        ${isLast?'✅ Valider et comparer les indices':'✅ Valider — Joueur suivant'}
+      </button>
+    </div>`;
+  const inp=el.querySelector('#clueIn'), btn=el.querySelector('#confirmClue');
+  inp.value=S.clues[step]||'';
+  if(inp.value.length>0) btn.disabled=false;
+  inp.focus();
+  inp.oninput=e=>{S.clues[step]=e.target.value.trim().toUpperCase();btn.disabled=S.clues[step].length===0;};
+  inp.onkeydown=e=>{if(e.key==='Enter'&&!btn.disabled)btn.click();};
+  btn.onclick=()=>{
+    S.clues[step]=inp.value.trim().toUpperCase();
+    if(isLast){buildValidClues();S.screen='compare';}
+    else{S.currentClueStep++;S.screen='pass_phone';}
+    render();
+  };
+  return el;
+}
+
+function renderClueWait(){
+  const rd=S.roomData||{};
+  const players=Object.values(rd.players||{});
+  const clues=rd.clues||{};
+  const submitted=Object.keys(clues).length, total=players.length-1;
+  const isDevin=rd.devinName===S.myName;
+  const el=div();
+  el.innerHTML=`
+    <div class="word-counter">Manche ${rd.roundNum||1} / ${rd.maxRounds||13}</div>
+    <div class="phase-badge"><span>✍️ Phase indices</span></div>
+    <div class="card waiting-card">
+      <div class="big-emoji">${isDevin?'🙈':'⏳'}</div>
+      <div style="font-family:'Lilita One',cursive;font-size:1.4rem;margin-bottom:8px;">${isDevin?'Ferme les yeux !':'Indice envoyé !'}</div>
+      <div style="font-weight:600;color:var(--muted);margin-bottom:20px;font-size:.95rem;">${isDevin?'Les autres écrivent leurs indices…':`En attente des autres… (${submitted}/${total})`}</div>
+      <div class="waiting-dots"><span></span><span></span><span></span></div>
+    </div>`;
+  return el;
+}
+
+function renderClueWriteMulti(){
+  const rd=S.roomData||{};
+  const el=div();
+  el.innerHTML=`
+    <div class="word-counter">Manche ${rd.roundNum||1} / ${rd.maxRounds||13}</div>
+    <div class="phase-badge"><span>✍️ Ton indice</span></div>
+    <div class="card">
+      <div style="background:#F8FAFC;border-radius:14px;padding:16px;margin-bottom:16px;text-align:center;">
+        <div style="font-size:.75rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">🎯 Mot à faire deviner</div>
+        <div class="mystery-word">${rd.currentWord||'???'}</div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div class="field-label">💡 Ton indice (1 seul mot) :</div>
+        <input type="text" id="clueIn" class="clue-input-big" placeholder="..." maxlength="20" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div style="background:#FFF8F0;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:.82rem;color:#7B5800;font-weight:600;">⚠️ Un seul mot • Pas le mot secret • Pas de déclinaison</div>
+      <button class="btn btn-primary" id="submitClue" style="width:100%;justify-content:center;" disabled>✅ Envoyer mon indice</button>
+    </div>`;
+  const inp=el.querySelector('#clueIn'), btn=el.querySelector('#submitClue');
+  inp.focus();
+  inp.oninput=e=>{btn.disabled=e.target.value.trim().length===0;};
+  inp.onkeydown=e=>{if(e.key==='Enter'&&!btn.disabled)btn.click();};
+  btn.onclick=async()=>{
+    const clue=inp.value.trim().toUpperCase();
+    btn.disabled=true;btn.textContent='Envoi…';
+    await submitMultiClue(clue);S.screen='clue_wait';render();
+  };
+  return el;
+}
+
+function renderCompare(){
+  const rd=S.roomData;
+  const devinName=rd?rd.devinName:`Joueur ${S.devinIndex+1}`;
+  const isHost=S.isHost||S.mode==='local';
+  const el=div();
+  el.innerHTML=`
+    <div class="word-counter">Manche ${rd?rd.roundNum:S.roundNum} / ${rd?rd.maxRounds:S.maxRounds}</div>
+    <div class="phase-badge"><span>🔍 Vérification des indices</span></div>
+    ${S.mode==='local'?scoreBar():''}
+    <div class="card">
+      <div style="background:#E8FDF5;border-radius:14px;padding:12px 16px;margin-bottom:16px;text-align:center;">
+        <div style="font-size:.8rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent3);margin-bottom:4px;">👁️ ${devinName} doit toujours regarder ailleurs</div>
+        <div style="font-size:.85rem;color:#1A6B52;font-weight:600;">Validez ou supprimez des indices similaires</div>
+      </div>
+      <div class="field-label">🗂️ Indices (cliquez pour éliminer/réactiver)</div>
+      <div class="clue-display-grid" id="cmpGrid"></div>
+      <div class="sep"></div>
+      <div style="font-size:.85rem;color:var(--muted);font-weight:600;text-align:center;margin-bottom:12px;">Les indices <span style="color:var(--red);font-weight:800;">rayés</span> sont auto-éliminés (doublons ou mot secret)</div>
+      ${isHost?`<div class="btn-row"><button class="btn btn-primary" id="showGuess">🎯 Montrer les indices au Devin</button></div>`
+              :`<div style="text-align:center;color:var(--muted);font-weight:600;font-size:.9rem;">⏳ L'hôte valide les indices…</div>`}
+    </div>`;
+  const grid=el.querySelector('#cmpGrid');
+  S.validClues.forEach(clue=>{
+    const chip=document.createElement('div');
+    chip.className='clue-chip '+(clue.removed||clue.manualRemoved?'removed':'active');
+    chip.textContent=clue.text; chip.style.cursor='pointer';
+    chip.onclick=()=>{if(!clue.removed){clue.manualRemoved=!clue.manualRemoved;render();}};
+    grid.appendChild(chip);
+  });
+  const sg=el.querySelector('#showGuess');
+  if(sg) sg.onclick=()=>{
+    if(S.mode==='multi'){
+      const active=S.validClues.filter(c=>!c.removed&&!c.manualRemoved).map(c=>c.text);
+      const{db,ref,update}=window._fb;
+      update(ref(db,`rooms/${S.roomCode}`),{phase:'guess',activeClues:active});
+    }
+    S.screen='guess';render();
+  };
+  return el;
+}
+
+function renderGuess(){
+  const rd=S.roomData;
+  const devinName=rd?rd.devinName:`Joueur ${S.devinIndex+1}`;
+  const activeClues=S.validClues.filter(c=>!c.removed&&!c.manualRemoved);
+  const isDevin=rd?rd.devinName===S.myName:true;
+  const el=div();
+  el.innerHTML=`
+    <div class="word-counter">Manche ${rd?rd.roundNum:S.roundNum} / ${rd?rd.maxRounds:S.maxRounds}</div>
+    <div class="phase-badge"><span>🤔 Phase devinette</span></div>
+    ${S.mode==='local'?scoreBar():''}
+    <div class="card">
+      <div style="text-align:center;margin-bottom:16px;"><div class="devin-badge">🎭 ${devinName} devine !</div></div>
+      <div class="field-label">💡 Tes indices (${activeClues.length||'aucun…'})</div>
+      <div class="clue-display-grid">
+        ${activeClues.length>0
+          ? activeClues.map(c=>`<div class="clue-chip active">${c.text}</div>`).join('')
+          : '<div style="color:var(--muted);font-weight:700;font-size:.9rem;text-align:center;width:100%;">😬 Tous les indices ont été éliminés !</div>'}
+      </div>
+      <div class="sep"></div>
+      ${isDevin?`
+        <div style="text-align:center;">
+          <div class="field-label" style="text-align:center;">Ton mot :</div>
+          <input type="text" class="guess-input" id="guessIn" placeholder="???" autocomplete="off" maxlength="30">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="skipGuess">⏭️ Passer (–1 mot)</button>
+          <button class="btn btn-success" id="validateGuess" disabled>✅ Valider</button>
+        </div>`
+      :`<div style="text-align:center;color:var(--muted);font-weight:600;">⏳ ${devinName} est en train de deviner…</div>`}
+    </div>`;
+  if(isDevin){
+    const inp=el.querySelector('#guessIn'), vbtn=el.querySelector('#validateGuess');
+    inp.focus();
+    inp.oninput=e=>{S.guess=e.target.value.trim();vbtn.disabled=S.guess.length===0;};
+    inp.onkeydown=e=>{if(e.key==='Enter'&&!vbtn.disabled)vbtn.click();};
+    vbtn.onclick=()=>{
+      const gn=S.guess.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const wn=(rd?rd.currentWord:S.currentWord).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const correct=gn===wn;
+      S.roundResult=correct?'correct':'wrong';
+      if(S.mode==='local'){if(correct){S.score.correct++;confetti();}else S.score.wrong++;S.screen='result';render();}
+      else submitMultiGuess(S.guess,correct);
+    };
+    el.querySelector('#skipGuess').onclick=()=>{
+      S.roundResult='skip';
+      if(S.mode==='local'){S.score.skip++;S.screen='result';render();}
+      else submitMultiGuess('',false,true);
+    };
+  }
+  return el;
+}
+
+function renderResult(){
+  const rd=S.roomData, r=S.roundResult;
+  const word=rd?rd.currentWord:S.currentWord;
+  const roundNum=rd?rd.roundNum:S.roundNum, maxRounds=rd?rd.maxRounds:S.maxRounds;
+  const isLast=roundNum>=maxRounds, isHost=S.isHost||S.mode==='local';
+  const sc=rd?rd.score:S.score;
+  const cfg={
+    correct:{cls:'correct-result',emoji:'🎉',text:'Bravo ! Bonne réponse !',sub:`Le mot était bien "${word}"`},
+    wrong:  {cls:'wrong-result',  emoji:'😬',text:`Raté ! C'était "${word}"`,sub:S.guess?`Tu as dit : "${S.guess}"`:''},
+    skip:   {cls:'skip-result',   emoji:'⏭️',text:`Mot passé : "${word}"`,sub:'Ce mot est défaussé'},
+  };
+  const c=cfg[r]||cfg.skip;
+  const el=div();
+  el.innerHTML=`
+    <div class="word-counter">Manche ${roundNum} / ${maxRounds}</div>
+    <div class="card">
+      <div class="result-banner ${c.cls}">
+        <span class="result-emoji">${c.emoji}</span>
+        <div class="result-text">${c.text}</div>
+        ${c.sub?`<div class="result-subtext">${c.sub}</div>`:''}
+      </div>
+      <div class="sep"></div>
+      <div style="display:flex;justify-content:space-around;padding:0 4px;">
+        <div style="text-align:center;"><div style="font-family:'Lilita One',cursive;font-size:2rem;color:var(--accent3);">${sc?sc.correct:0}</div><div style="font-size:.75rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Bons</div></div>
+        <div style="text-align:center;"><div style="font-family:'Lilita One',cursive;font-size:2rem;color:var(--red);">${sc?sc.wrong:0}</div><div style="font-size:.75rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Ratés</div></div>
+        <div style="text-align:center;"><div style="font-family:'Lilita One',cursive;font-size:2rem;color:var(--muted);">${sc?sc.skip:0}</div><div style="font-size:.75rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Passés</div></div>
+      </div>
+      <div class="btn-row">
+        ${isHost
+          ? `<button class="btn btn-primary" id="nextBtn">${isLast?'🏁 Voir les résultats':'➡️ Manche suivante'}</button>`
+          : `<div style="text-align:center;width:100%;color:var(--muted);font-weight:600;font-size:.9rem;">⏳ En attente de l'hôte…</div>`}
+      </div>
+    </div>`;
+  const nb=el.querySelector('#nextBtn');
+  if(nb) nb.onclick=()=>{if(isLast){S.screen='gameover';render();}else{S.mode==='local'?nextRoundLocal():nextRoundMulti();}};
+  return el;
+}
+
+function renderGameover(){
+  const rd=S.roomData, sc=rd?rd.score:S.score, total=sc?sc.correct:0;
+  let msg,emoji;
+  if(total>=11){msg='Extraordinaire ! 🏆';emoji='🌟';}
+  else if(total>=8){msg='Excellent !';emoji='🎉';}
+  else if(total>=5){msg='Pas mal du tout !';emoji='😊';}
+  else{msg="L'entraînement s'impose…";emoji='😅';}
+  const el=div();
+  el.innerHTML=`
+    <div class="card" style="text-align:center;">
+      <div style="font-size:4rem;margin-bottom:8px;">${emoji}</div>
+      <div style="font-family:'Lilita One',cursive;font-size:2rem;margin-bottom:4px;">Partie terminée !</div>
+      <div style="font-weight:700;color:var(--muted);margin-bottom:24px;">${msg}</div>
+      <div style="display:flex;justify-content:center;gap:16px;margin-bottom:24px;">
+        <div style="background:#E8FDF5;padding:16px 20px;border-radius:16px;"><div style="font-family:'Lilita One',cursive;font-size:2.8rem;color:var(--accent3);">${sc?sc.correct:0}</div><div style="font-size:.8rem;font-weight:800;color:var(--accent3);text-transform:uppercase;letter-spacing:1px;">Bons</div></div>
+        <div style="background:#FFF0F3;padding:16px 20px;border-radius:16px;"><div style="font-family:'Lilita One',cursive;font-size:2.8rem;color:var(--red);">${sc?sc.wrong:0}</div><div style="font-size:.8rem;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:1px;">Ratés</div></div>
+        <div style="background:#F8FAFC;padding:16px 20px;border-radius:16px;"><div style="font-family:'Lilita One',cursive;font-size:2.8rem;color:var(--muted);">${sc?sc.skip:0}</div><div style="font-size:.8rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Passés</div></div>
+      </div>
+      <div class="btn-row" style="justify-content:center;">
+        ${(S.isHost||S.mode==='local')?'<button class="btn btn-primary" id="replayBtn">🔄 Rejouer</button>':''}
+        <button class="btn btn-secondary" id="homeBtn">🏠 Accueil</button>
+      </div>
+    </div>`;
+  el.querySelector('#homeBtn').onclick=()=>{cleanupMulti();S.roomData=null;S.roomCode='';S.screen='home';render();};
+  const rb=el.querySelector('#replayBtn');
+  if(rb) rb.onclick=async()=>{
+    if(S.mode==='local'){
+      S.loading=true;S.screen='clues_intro';S.roundNum=1;S.devinIndex=0;S.score={correct:0,wrong:0,skip:0};render();
+      try{S.wordList=await fetchWords(S.category,25);}catch{S.wordList=shuffle([...(FALLBACK[S.category]||FALLBACK['Tous'])]);}
+      S.wordIndex=0;S.currentWord=S.wordList[0];addHistory([S.currentWord]);initClueOrder();S.loading=false;render();
+    } else startMultiGame();
+  };
+  return el;
+}
+
+function renderLoading(msg='Génération des mots par l\'IA…'){
+  const el=div();
+  el.innerHTML=`<div class="card loading-state"><div class="spinner"></div><div style="font-weight:700;color:var(--muted);">${msg}</div></div>`;
+  return el;
+}
+
+function scoreBar(){
+  return `<div class="scorebar"><div class="score-pill correct">✅ ${S.score.correct}</div><div class="score-pill wrong">❌ ${S.score.wrong}</div><div class="score-pill skipped">⏭️ ${S.score.skip}</div></div>`;
+}
+
+// ============================================================
+// LOCAL HELPERS
+// ============================================================
+function initClueOrder(){
+  const o=[];for(let i=0;i<S.players;i++)if(i!==S.devinIndex)o.push(i);
+  S.clueOrder=o;S.clues=Array(o.length).fill('');S.validClues=[];S.currentClueStep=0;
+}
+
+function buildValidClues(cluesArr,word){
+  const src=cluesArr||S.clues, w=(word||S.currentWord).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const filled=src.filter(c=>c&&c.length>0);
+  const lower=filled.map(c=>c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''));
+  const cnt={};lower.forEach(c=>{cnt[c]=(cnt[c]||0)+1;});
+  S.validClues=filled.map((c,i)=>({text:c,removed:cnt[lower[i]]>1||lower[i]===w,manualRemoved:false}));
+}
+
+function nextRoundLocal(){
+  S.roundNum++;S.wordIndex++;
+  if(S.wordIndex>=S.wordList.length){S.wordIndex=0;S.wordList=shuffle(S.wordList);}
+  S.currentWord=S.wordList[S.wordIndex];addHistory([S.currentWord]);
+  S.devinIndex=(S.devinIndex+1)%S.players;
+  S.guess='';S.roundResult=null;initClueOrder();S.screen='clues_intro';render();
+}
+
+// ============================================================
+// FIREBASE HELPERS
+// ============================================================
+function randomCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ';return Array.from({length:4},()=>c[Math.floor(Math.random()*c.length)]).join('');}
+
+async function createRoom(){
+  const{db,ref,set}=window._fb;
+  await set(ref(db,`rooms/${S.roomCode}`),{
+    phase:'lobby',host:S.myName,maxRounds:13,category:S.category,
+    players:{[S.myName]:{name:S.myName,host:true}},
+    score:{correct:0,wrong:0,skip:0},createdAt:Date.now(),
+  });
+  listenRoom();
+}
+
+async function joinRoom(code,name){
+  const{db,ref,get,update}=window._fb;
+  const snap=await get(ref(db,`rooms/${code}`));
+  if(!snap.exists())return false;
+  const d=snap.val();if(d.phase!=='lobby')return false;
+  S.category=d.category||'Tous';
+  await update(ref(db,`rooms/${code}/players`),{[name]:{name,host:false}});
+  listenRoom();return true;
+}
+
+function listenRoom(){
+  const{db,ref,onValue}=window._fb;
+  if(S.fbUnsubscribe){try{S.fbUnsubscribe();}catch{}}
+  S.fbUnsubscribe=onValue(ref(db,`rooms/${S.roomCode}`),snap=>{
+    if(!snap.exists())return;
+    S.roomData=snap.val();handleRoomUpdate(S.roomData);
+  });
+}
+
+function cleanupMulti(){if(S.fbUnsubscribe){try{S.fbUnsubscribe();}catch{}S.fbUnsubscribe=null;}}
+
+function handleRoomUpdate(rd){
+  const phase=rd.phase;
+  if(phase==='lobby'){if(S.screen!=='room_lobby'){S.screen='room_lobby';}render();return;}
+
+  const isDevin=rd.devinName===S.myName;
+  const players=Object.values(rd.players||{});
+  const clues=rd.clues||{};
+  const submitted=Object.keys(clues).length, total=players.length-1;
+
+  if(phase==='clues'){
+    if(isDevin){if(S.screen!=='clue_wait'){S.screen='clue_wait';render();}}
+    else if(clues[S.myName]){
+      if(submitted>=total&&S.isHost){
+        buildValidClues(Object.values(clues),rd.currentWord);
+        const{db,ref,update}=window._fb;
+        update(ref(db,`rooms/${S.roomCode}`),{phase:'compare'});
+      } else if(S.screen!=='clue_wait'){S.screen='clue_wait';render();}
+      else render();
+    } else {if(S.screen!=='clue_write_multi'){S.screen='clue_write_multi';render();}}
+    return;
+  }
+  if(phase==='compare'){
+    if(S.screen!=='compare'){buildValidClues(Object.values(rd.clues||{}),rd.currentWord);S.screen='compare';render();}
+    return;
+  }
+  if(phase==='guess'){
+    if(rd.activeClues&&S.validClues.filter(c=>!c.removed&&!c.manualRemoved).length===0){
+      S.validClues=rd.activeClues.map(t=>({text:t,removed:false,manualRemoved:false}));
+    }
+    if(S.screen!=='guess'){S.screen='guess';render();}
+    return;
+  }
+  if(phase==='result'){S.roundResult=rd.lastResult||'skip';S.guess=rd.lastGuess||'';if(S.screen!=='result'){S.screen='result';render();}return;}
+  if(phase==='gameover'){if(S.screen!=='gameover'){S.screen='gameover';render();}return;}
+}
+
+async function startMultiGame(){
+  const{db,ref,update}=window._fb;
+  let wl=[];
+  try{wl=await fetchWords(S.category,25);}catch{wl=shuffle([...(FALLBACK[S.category]||FALLBACK['Tous'])]);}
+  const rd=S.roomData||{}, players=Object.keys(rd.players||{}), devinName=players[0];
+  addHistory([wl[0]]);
+  await update(ref(db,`rooms/${S.roomCode}`),{
+    phase:'clues',wordList:wl,wordIndex:0,currentWord:wl[0],
+    roundNum:1,maxRounds:rd.maxRounds||13,devinName,
+    clues:{},score:{correct:0,wrong:0,skip:0},activeClues:[],lastResult:null,lastGuess:'',
+  });
+}
+
+async function submitMultiClue(clue){
+  const{db,ref,update}=window._fb;
+  await update(ref(db,`rooms/${S.roomCode}/clues`),{[S.myName]:clue});
+}
+
+async function submitMultiGuess(guess,correct,skip=false){
+  const{db,ref,update}=window._fb;
+  const rd=S.roomData||{}, score=Object.assign({correct:0,wrong:0,skip:0},rd.score);
+  const result=skip?'skip':(correct?'correct':'wrong');
+  if(correct){score.correct++;confetti();}else if(skip)score.skip++;else score.wrong++;
+  const roundNum=rd.roundNum||1, maxRounds=rd.maxRounds||13;
+  await update(ref(db,`rooms/${S.roomCode}`),{
+    phase:roundNum>=maxRounds?'gameover':'result',
+    score,lastResult:result,lastGuess:guess||'',
+  });
+}
+
+async function nextRoundMulti(){
+  const{db,ref,update}=window._fb;
+  const rd=S.roomData||{}, players=Object.keys(rd.players||{});
+  const oldIdx=players.indexOf(rd.devinName), newDevin=players[(oldIdx+1)%players.length];
+  const wl=rd.wordList||[];
+  let wi=(rd.wordIndex||0)+1;if(wi>=wl.length)wi=0;
+  addHistory([wl[wi]]);
+  await update(ref(db,`rooms/${S.roomCode}`),{
+    phase:'clues',wordIndex:wi,currentWord:wl[wi],
+    roundNum:(rd.roundNum||1)+1,devinName:newDevin,
+    clues:{},activeClues:[],lastResult:null,lastGuess:'',
+  });
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function div(){return document.createElement('div');}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function confetti(){
+  const wrap=document.createElement('div');wrap.className='confetti-wrap';document.body.appendChild(wrap);
+  const colors=['#FF6B35','#FFD166','#06D6A0','#118AB2','#EF476F','#9B5DE5'];
+  for(let i=0;i<60;i++){const p=document.createElement('div');p.className='confetti-piece';p.style.cssText=`left:${Math.random()*100}vw;top:-20px;background:${colors[Math.floor(Math.random()*colors.length)]};animation-delay:${Math.random()*.6}s;animation-duration:${1+Math.random()*.8}s;width:${8+Math.random()*8}px;height:${8+Math.random()*8}px;`;wrap.appendChild(p);}
+  setTimeout(()=>wrap.remove(),2500);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init(){S.screen='home';render();}
+if(window._firebaseReady)init();else window._onFirebaseReady=init;
+</script>
+
+</body>
+</html>
