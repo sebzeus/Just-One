@@ -757,26 +757,26 @@ function handleRoomUpdate(rd){
     // Réinitialiser validClues au début de chaque nouvelle manche
     if(S._lastRound!==rd.roundNum){ S._lastRound=rd.roundNum; S.validClues=[]; }
 
-    if(isDevin){
+    const allSubmitted=submitted>=total&&total>0;
+
+    // Si tout le monde a soumis, le premier joueur non-devin qui le détecte passe à compare
+    if(allSubmitted){
+      if(!isDevin){
+        buildValidClues(Object.values(clues),rd.currentWord);
+        const{db,ref,update}=window._fb;
+        // Utiliser une transaction-like : seulement si encore en phase clues
+        update(ref(db,`rooms/${S.roomCode}`),{phase:'compare'});
+      }
+      // Le devin attend juste
       if(S.screen!=='clue_wait'){S.screen='clue_wait';render();}
       return;
     }
-    if(clues[S.myName]){
-      // Cet utilisateur a déjà soumis son indice
-      if(submitted>=total){
-        // Tout le monde a soumis — l'hôte passe à compare (peu importe son écran actuel)
-        if(S.isHost){
-          buildValidClues(Object.values(clues),rd.currentWord);
-          const{db,ref,update}=window._fb;
-          update(ref(db,`rooms/${S.roomCode}`),{phase:'compare'});
-        } else {
-          if(S.screen!=='clue_wait'){S.screen='clue_wait';render();}
-          else render();
-        }
-      } else {
-        if(S.screen!=='clue_wait'){S.screen='clue_wait';render();}
-        else render();
-      }
+
+    if(isDevin){
+      if(S.screen!=='clue_wait'){S.screen='clue_wait';render();}
+    } else if(clues[S.myName]){
+      if(S.screen!=='clue_wait'){S.screen='clue_wait';render();}
+      else render();
     } else {
       if(S.screen!=='clue_write_multi'){S.screen='clue_write_multi';render();}
     }
@@ -888,27 +888,32 @@ async function tryReconnect(){
 const _origListenRoom=listenRoom;
 
 async function init(){
-  // Afficher un écran de reconnexion si session sauvegardée
   const raw=localStorage.getItem('jo_session');
   if(raw){
     try{
       const sess=JSON.parse(raw);
       if(sess.roomCode&&sess.myName){
-        // Montrer écran de reconnexion
+        // Afficher écran de reconnexion persistant
         const root=document.getElementById('root');
         root.innerHTML=`<div class="card" style="text-align:center;">
           <div style="font-size:3rem;margin-bottom:12px;">🔄</div>
-          <div style="font-family:'Lilita One',cursive;font-size:1.5rem;margin-bottom:8px;">Reconnexion…</div>
-          <div style="font-weight:600;color:var(--muted);margin-bottom:16px;">Salle <strong>${sess.roomCode}</strong> — ${sess.myName}</div>
-          <div class="waiting-dots"><span></span><span></span><span></span></div>
-          <div class="btn-row" style="justify-content:center;margin-top:20px;">
-            <button class="btn btn-secondary" id="cancelRecoBtn">✖️ Nouvelle partie</button>
+          <div style="font-family:'Lilita One',cursive;font-size:1.5rem;margin-bottom:8px;">Session en cours</div>
+          <div style="font-weight:600;color:var(--muted);margin-bottom:20px;line-height:1.6;">
+            Salle <strong style="color:var(--accent);font-size:1.2rem;letter-spacing:3px;">${sess.roomCode}</strong><br>
+            Joueur : <strong>${sess.myName}</strong>
+          </div>
+          <div class="btn-row" style="justify-content:center;flex-direction:column;gap:10px;">
+            <button class="btn btn-primary" id="recoBtn" style="width:100%;justify-content:center;">🔌 Rejoindre la partie en cours</button>
+            <button class="btn btn-secondary" id="cancelRecoBtn" style="width:100%;justify-content:center;">✖️ Abandonner — Nouvelle partie</button>
           </div>
         </div>`;
         document.getElementById('cancelRecoBtn').onclick=()=>{clearSession();S.screen='home';render();};
-        const ok=await tryReconnect();
-        if(!ok){clearSession();S.screen='home';render();}
-        // Si ok, handleRoomUpdate prend le relais
+        document.getElementById('recoBtn').onclick=async()=>{
+          document.getElementById('recoBtn').textContent='Connexion…';
+          document.getElementById('recoBtn').disabled=true;
+          const ok=await tryReconnect();
+          if(!ok){clearSession();S.screen='home';render();}
+        };
         return;
       }
     }catch{}
