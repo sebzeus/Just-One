@@ -357,11 +357,29 @@ function renderCluesIntro(){
       <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
         <button class="btn btn-secondary" id="skipRound" style="font-size:.85rem;">⏭️ Passer ce mot</button>
         <button class="btn btn-secondary" id="changeWord" style="font-size:.85rem;">🔄 Changer de mot</button>
+        <button class="btn btn-secondary" id="excludeWord" style="font-size:.85rem;">🚫 On l'a déjà eu</button>
       </div>
     </div>`;
   el.querySelector('#startClues').onclick=()=>{S.currentClueStep=0;S.screen='clue_turn';render();};
   el.querySelector('#skipRound').onclick=()=>{S.roundResult='skip';S.score.skip++;nextRoundLocal();};
   el.querySelector('#changeWord').onclick=async()=>{
+    S.loading=true;render();
+    const hist=getHistory();
+    let found=false;
+    for(let i=1;i<S.wordList.length;i++){
+      const idx=(S.wordIndex+i)%S.wordList.length;
+      if(!hist.includes(S.wordList[idx])){S.wordIndex=idx;S.currentWord=S.wordList[idx];found=true;break;}
+    }
+    if(!found){
+      try{S.wordList=await fetchWords(S.category,25);}catch{S.wordList=shuffle([...(FALLBACK[S.category]||FALLBACK['Tous'])]);}
+      S.wordIndex=0;S.currentWord=S.wordList[0];
+    }
+    addHistory([S.currentWord]);initClueOrder();S.loading=false;render();
+  };
+  el.querySelector('#excludeWord').onclick=async()=>{
+    // Ajouter le mot à l'historique pour l'exclure définitivement
+    addHistory([S.currentWord]);
+    // Puis changer de mot
     S.loading=true;render();
     const hist=getHistory();
     let found=false;
@@ -486,6 +504,9 @@ function renderClueWriteMulti(rd){
       </div>
       <div style="background:#FFF8F0;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:.82rem;color:#7B5800;font-weight:600;">⚠️ Un seul mot • Pas le mot secret • Pas de déclinaison</div>
       <button class="btn btn-primary" id="submitClue" style="width:100%;justify-content:center;" disabled>✅ Envoyer mon indice</button>
+      <div style="margin-top:10px;text-align:center;">
+        <button class="btn btn-secondary" id="excludeWordMulti" style="font-size:.82rem;">🚫 On l'a déjà eu — Exclure ce mot</button>
+      </div>
     </div>`;
   const inp=el.querySelector('#clueIn'), btn=el.querySelector('#submitClue');
   inp.focus();
@@ -496,6 +517,19 @@ function renderClueWriteMulti(rd){
     btn.disabled=true;btn.textContent='Envoi…';
     await submitMultiClue(clue);
     // Firebase va déclencher renderMultiFromFirebase automatiquement
+  };
+  el.querySelector('#excludeWordMulti').onclick=async()=>{
+    addHistory([rd.currentWord]);
+    const{db,ref,update}=window._fb;
+    const wl=rd.wordList||[], hist=getHistory();
+    let wi=(rd.wordIndex||0)+1, found=false;
+    for(let i=0;i<wl.length;i++){
+      const idx=(wi+i)%wl.length;
+      if(!hist.includes(wl[idx])){wi=idx;found=true;break;}
+    }
+    const newWord=found?wl[wi]:wl[wi]||rd.currentWord;
+    addHistory([newWord]);
+    await update(ref(db,`rooms/${S.roomCode}`),{currentWord:newWord,wordIndex:wi,clues:{}});
   };
   return el;
 }
