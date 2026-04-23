@@ -504,6 +504,7 @@ function renderCompare(){
   const devinName=rd?rd.devinName:`Joueur ${S.devinIndex+1}`;
   const isHost=S.isHost||S.mode==='local';
   const isDevin=rd?rd.devinName===S.myName:false;
+  const canValidate=S.mode==='local'||(rd&&rd.devinName!==S.myName);
 
   // Le devin voit un écran d'attente
   if(isDevin){
@@ -534,8 +535,8 @@ function renderCompare(){
       <div class="clue-display-grid" id="cmpGrid"></div>
       <div class="sep"></div>
       <div style="font-size:.85rem;color:var(--muted);font-weight:600;text-align:center;margin-bottom:12px;">Les indices <span style="color:var(--red);font-weight:800;">rayés</span> sont auto-éliminés (doublons ou mot secret)</div>
-      ${isHost?`<div class="btn-row"><button class="btn btn-primary" id="showGuess">🎯 Montrer les indices au Devin</button></div>`
-              :`<div style="text-align:center;color:var(--muted);font-weight:600;font-size:.9rem;">⏳ L'hôte valide les indices…</div>`}
+      ${canValidate?`<div class="btn-row"><button class="btn btn-primary" id="showGuess">🎯 Montrer les indices au Devin</button></div>`
+              :`<div style="text-align:center;color:var(--muted);font-weight:600;font-size:.9rem;">⏳ Les autres valident les indices…</div>`}
     </div>`;
   const grid=el.querySelector('#cmpGrid');
   S.validClues.forEach(clue=>{
