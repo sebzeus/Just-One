@@ -469,8 +469,8 @@ function renderClueWait(){
   return el;
 }
 
-function renderClueWriteMulti(){
-  const rd=S.roomData||{};
+function renderClueWriteMulti(rd){
+  rd=rd||S.roomData||{};
   const el=div();
   el.innerHTML=`
     <div class="word-counter">Manche ${rd.roundNum||1} / ${rd.maxRounds||13}</div>
@@ -494,12 +494,8 @@ function renderClueWriteMulti(){
   btn.onclick=async()=>{
     const clue=inp.value.trim().toUpperCase();
     btn.disabled=true;btn.textContent='Envoi…';
-    _transitioning=true;
     await submitMultiClue(clue);
-    // Ne pas appeler render() ici — Firebase va déclencher handleRoomUpdate
-    // qui mettra à jour l'écran proprement
-    S.screen='clue_wait';
-    setTimeout(()=>render(),0);
+    // Firebase va déclencher renderMultiFromFirebase automatiquement
   };
   return el;
 }
@@ -797,6 +793,17 @@ function renderMultiFromFirebase(rd){
       return;
     }
     if(clues[S.myName]){
+      // Tous les indices soumis → passer à compare (une seule fois)
+      if(submitted>=total&&total>0){
+        buildValidClues(Object.values(clues),rd.currentWord);
+        const{db,ref,update,get}=window._fb;
+        // Vérifier que la phase est encore 'clues' avant d'écrire
+        get(ref(db,`rooms/${S.roomCode}/phase`)).then(snap=>{
+          if(snap.val()==='clues'){
+            update(ref(db,`rooms/${S.roomCode}`),{phase:'compare'});
+          }
+        });
+      }
       root.innerHTML=`
         <div class="word-counter">Manche ${rd.roundNum}/${rd.maxRounds}</div>
         <div class="phase-badge"><span>✍️ Phase indices</span></div>
@@ -810,12 +817,6 @@ function renderMultiFromFirebase(rd){
           <button class="btn btn-secondary" id="leaveBtn">🏠 Quitter</button>
         </div>`;
       root.querySelector('#leaveBtn').onclick=()=>{cleanupMulti();S.roomData=null;S.roomCode='';S.screen='home';render();};
-      // Tous les indices soumis → passer à compare
-      if(submitted>=total&&total>0){
-        buildValidClues(Object.values(clues),rd.currentWord);
-        const{db,ref,update}=window._fb;
-        update(ref(db,`rooms/${S.roomCode}`),{phase:'compare'});
-      }
       return;
     }
     // Doit saisir son indice
