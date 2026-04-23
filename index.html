@@ -758,71 +758,116 @@ function cleanupMulti(){
   if(S.fbUnsubscribe){try{S.fbUnsubscribe();}catch{}S.fbUnsubscribe=null;}
 }
 
-let _transitioning=false;
+// ============================================================
+// FIREBASE — SOURCE DE VÉRITÉ UNIQUE
+// Principe : Firebase dicte l'affichage directement.
+// Aucune gestion de S.screen en mode multi.
+// ============================================================
 
-function handleRoomUpdate(rd){
+function renderMultiFromFirebase(rd){
+  if(!rd)return;
+  const root=document.getElementById('root');
+  if(!root)return;
   const phase=rd.phase;
-  console.log('[JO] handleRoomUpdate phase='+phase+' screen='+S.screen+' myName='+S.myName+' devin='+rd.devinName+' isHost='+S.isHost);
-
-  if(phase==='lobby'){S.screen='room_lobby';setTimeout(()=>render(),0);return;}
-
   const isDevin=rd.devinName===S.myName;
-  const players=Object.values(rd.players||{});
   const clues=rd.clues||{};
-  const submitted=Object.keys(clues).length, total=players.length-1;
-  console.log('[JO] isDevin='+isDevin+' submitted='+submitted+'/'+total+' clues='+JSON.stringify(Object.keys(clues)));
+  const players=Object.values(rd.players||{});
+  const total=players.length-1;
+  const submitted=Object.keys(clues).length;
+
+  if(phase==='lobby'){
+    root.innerHTML='';root.appendChild(renderRoomLobby());return;
+  }
 
   if(phase==='clues'){
-    if(S._lastRound!==rd.roundNum){ S._lastRound=rd.roundNum; S.validClues=[]; _transitioning=false; }
-    const allSubmitted=submitted>=total&&total>0;
-    if(allSubmitted){
-      if(!isDevin&&!_transitioning){
-        _transitioning=true;
+    if(isDevin){
+      root.innerHTML=`
+        <div class="word-counter">Manche ${rd.roundNum}/${rd.maxRounds}</div>
+        <div class="phase-badge"><span>✍️ Phase indices</span></div>
+        <div class="card waiting-card">
+          <div class="big-emoji">🙈</div>
+          <div style="font-family:'Lilita One',cursive;font-size:1.4rem;margin-bottom:8px;">Ferme les yeux !</div>
+          <div style="font-weight:600;color:var(--muted);margin-bottom:20px;font-size:.95rem;">Les autres écrivent leurs indices…</div>
+          <div class="waiting-dots"><span></span><span></span><span></span></div>
+        </div>
+        <div class="card" style="text-align:center;padding:16px;">
+          <button class="btn btn-secondary" id="leaveBtn">🏠 Quitter</button>
+        </div>`;
+      root.querySelector('#leaveBtn').onclick=()=>{cleanupMulti();S.roomData=null;S.roomCode='';S.screen='home';render();};
+      return;
+    }
+    if(clues[S.myName]){
+      root.innerHTML=`
+        <div class="word-counter">Manche ${rd.roundNum}/${rd.maxRounds}</div>
+        <div class="phase-badge"><span>✍️ Phase indices</span></div>
+        <div class="card waiting-card">
+          <div class="big-emoji">⏳</div>
+          <div style="font-family:'Lilita One',cursive;font-size:1.4rem;margin-bottom:8px;">Indice envoyé !</div>
+          <div style="font-weight:600;color:var(--muted);margin-bottom:20px;font-size:.95rem;">En attente… (${submitted}/${total})</div>
+          <div class="waiting-dots"><span></span><span></span><span></span></div>
+        </div>
+        <div class="card" style="text-align:center;padding:16px;">
+          <button class="btn btn-secondary" id="leaveBtn">🏠 Quitter</button>
+        </div>`;
+      root.querySelector('#leaveBtn').onclick=()=>{cleanupMulti();S.roomData=null;S.roomCode='';S.screen='home';render();};
+      // Tous les indices soumis → passer à compare
+      if(submitted>=total&&total>0){
         buildValidClues(Object.values(clues),rd.currentWord);
         const{db,ref,update}=window._fb;
         update(ref(db,`rooms/${S.roomCode}`),{phase:'compare'});
       }
-      S.screen='clue_wait';setTimeout(()=>render(),0);
       return;
     }
-    if(isDevin) S.screen='clue_wait';
-    else if(clues[S.myName]) S.screen='clue_wait';
-    else S.screen='clue_write_multi';
-    setTimeout(()=>render(),0);
+    // Doit saisir son indice
+    root.innerHTML='';root.appendChild(renderClueWriteMulti(rd));
     return;
   }
+
   if(phase==='compare'){
-    _transitioning=false;
-    try{ buildValidClues(Object.values(rd.clues||{}),rd.currentWord); }catch(e){ console.log('[JO] buildValidClues error',e);S.validClues=[]; }
-    console.log('[JO] forcing compare, current='+S.screen);
-    S.screen='compare';
-    setTimeout(()=>render(),0);
+    try{buildValidClues(Object.values(rd.clues||{}),rd.currentWord);}catch{S.validClues=[];}
+    root.innerHTML='';root.appendChild(renderCompare());
     return;
   }
+
   if(phase==='guess'){
-    if(rd.activeClues){ S.validClues=rd.activeClues.map(t=>({text:t,removed:false,manualRemoved:false})); }
-    S.screen='guess';
-    setTimeout(()=>render(),0);
+    if(rd.activeClues) S.validClues=rd.activeClues.map(t=>({text:t,removed:false,manualRemoved:false}));
+    root.innerHTML='';root.appendChild(renderGuess());
     return;
   }
+
   if(phase==='result'){
     S.roundResult=rd.lastResult||'skip';S.guess=rd.lastGuess||'';
-    S.screen='result';
-    setTimeout(()=>render(),0);
+    root.innerHTML='';root.appendChild(renderResult());
     return;
   }
+
   if(phase==='gameover'){
-    S.screen='gameover';
-    setTimeout(()=>render(),0);
+    root.innerHTML='';root.appendChild(renderGameover());
     return;
   }
+}
+
+function listenRoom(){
+  saveSession();S.mode='multi';
+  const{db,ref,onValue}=window._fb;
+  if(S.fbUnsubscribe){try{S.fbUnsubscribe();}catch{}}
+  S.fbUnsubscribe=onValue(ref(db,`rooms/${S.roomCode}`),snap=>{
+    if(!snap.exists())return;
+    S.roomData=snap.val();
+    renderMultiFromFirebase(S.roomData);
+  });
+}
+
+function cleanupMulti(){
+  clearSession();
+  if(S.fbUnsubscribe){try{S.fbUnsubscribe();}catch{}S.fbUnsubscribe=null;}
 }
 
 async function startMultiGame(){
   const{db,ref,update}=window._fb;
   let wl=[];
   try{wl=await fetchWords(S.category,25);}catch{wl=shuffle([...(FALLBACK[S.category]||FALLBACK['Tous'])]);}
-  const rd=S.roomData||{}, players=Object.keys(rd.players||{}), devinName=players[0];
+  const rd=S.roomData||{},players=Object.keys(rd.players||{}),devinName=players[0];
   addHistory([wl[0]]);
   await update(ref(db,`rooms/${S.roomCode}`),{
     phase:'clues',wordList:wl,wordIndex:0,currentWord:wl[0],
@@ -838,20 +883,19 @@ async function submitMultiClue(clue){
 
 async function submitMultiGuess(guess,correct,skip=false){
   const{db,ref,update}=window._fb;
-  const rd=S.roomData||{}, score=Object.assign({correct:0,wrong:0,skip:0},rd.score);
+  const rd=S.roomData||{},score=Object.assign({correct:0,wrong:0,skip:0},rd.score);
   const result=skip?'skip':(correct?'correct':'wrong');
   if(correct){score.correct++;confetti();}else if(skip)score.skip++;else score.wrong++;
-  const roundNum=rd.roundNum||1, maxRounds=rd.maxRounds||13;
   await update(ref(db,`rooms/${S.roomCode}`),{
-    phase:roundNum>=maxRounds?'gameover':'result',
+    phase:(rd.roundNum||1)>=(rd.maxRounds||13)?'gameover':'result',
     score,lastResult:result,lastGuess:guess||'',
   });
 }
 
 async function nextRoundMulti(){
   const{db,ref,update}=window._fb;
-  const rd=S.roomData||{}, players=Object.keys(rd.players||{});
-  const oldIdx=players.indexOf(rd.devinName), newDevin=players[(oldIdx+1)%players.length];
+  const rd=S.roomData||{},players=Object.keys(rd.players||{});
+  const newDevin=players[(players.indexOf(rd.devinName)+1)%players.length];
   const wl=rd.wordList||[];
   let wi=(rd.wordIndex||0)+1;if(wi>=wl.length)wi=0;
   addHistory([wl[wi]]);
@@ -879,48 +923,29 @@ function confetti(){
 // ============================================================
 function saveSession(){
   if(!S.roomCode||!S.myName)return;
-  localStorage.setItem('jo_session',JSON.stringify({roomCode:S.roomCode,myName:S.myName,isHost:S.isHost,mode:S.mode,category:S.category}));
+  localStorage.setItem('jo_session',JSON.stringify({roomCode:S.roomCode,myName:S.myName,isHost:S.isHost,category:S.category}));
 }
-
-function clearSession(){ localStorage.removeItem('jo_session'); }
+function clearSession(){localStorage.removeItem('jo_session');}
 
 async function tryReconnect(){
   try{
-    const raw=localStorage.getItem('jo_session');
-    if(!raw)return false;
-    const sess=JSON.parse(raw);
+    const sess=JSON.parse(localStorage.getItem('jo_session')||'{}');
     if(!sess.roomCode||!sess.myName)return false;
     const{db,ref,get}=window._fb;
     const snap=await get(ref(db,`rooms/${sess.roomCode}`));
     if(!snap.exists()){clearSession();return false;}
-    const rd=snap.val();
-    if(rd.phase==='gameover'){clearSession();return false;}
+    if(snap.val().phase==='gameover'){clearSession();return false;}
     Object.assign(S,{roomCode:sess.roomCode,myName:sess.myName,isHost:sess.isHost,mode:'multi',category:sess.category||'Tous'});
-    listenRoom();
-    return true;
-  }catch(e){console.log('[JO] reconnect error',e);return false;}
-}
-
-function listenRoom(){
-  saveSession();
-  S.mode='multi';
-  const{db,ref,onValue}=window._fb;
-  if(S.fbUnsubscribe){try{S.fbUnsubscribe();}catch{}}
-  S.fbUnsubscribe=onValue(ref(db,`rooms/${S.roomCode}`),snap=>{
-    if(!snap.exists())return;
-    S.roomData=snap.val();
-    handleRoomUpdate(S.roomData);
-  });
+    listenRoom();return true;
+  }catch{return false;}
 }
 
 async function init(){
-  const raw=localStorage.getItem('jo_session');
-  if(raw){
-    try{
-      const sess=JSON.parse(raw);
-      if(sess.roomCode&&sess.myName){
-        const root=document.getElementById('root');
-        root.innerHTML=`<div class="card" style="text-align:center;">
+  try{
+    const sess=JSON.parse(localStorage.getItem('jo_session')||'{}');
+    if(sess.roomCode&&sess.myName){
+      document.getElementById('root').innerHTML=`
+        <div class="card" style="text-align:center;">
           <div style="font-size:3rem;margin-bottom:12px;">🔄</div>
           <div style="font-family:'Lilita One',cursive;font-size:1.5rem;margin-bottom:8px;">Session en cours</div>
           <div style="font-weight:600;color:var(--muted);margin-bottom:20px;line-height:1.6;">
@@ -932,22 +957,23 @@ async function init(){
             <button class="btn btn-secondary" id="cancelRecoBtn" style="width:100%;justify-content:center;">✖️ Abandonner — Nouvelle partie</button>
           </div>
         </div>`;
-        document.getElementById('cancelRecoBtn').onclick=()=>{clearSession();S.screen='home';render();};
-        document.getElementById('recoBtn').onclick=async()=>{
-          document.getElementById('recoBtn').textContent='Connexion…';
-          document.getElementById('recoBtn').disabled=true;
-          const ok=await tryReconnect();
-          if(!ok){clearSession();S.screen='home';render();}
-        };
-        return;
-      }
-    }catch{}
-  }
+      document.getElementById('cancelRecoBtn').onclick=()=>{clearSession();S.screen='home';render();};
+      document.getElementById('recoBtn').onclick=async()=>{
+        document.getElementById('recoBtn').textContent='Connexion…';
+        document.getElementById('recoBtn').disabled=true;
+        if(!await tryReconnect()){clearSession();S.screen='home';render();}
+      };
+      return;
+    }
+  }catch{}
   S.screen='home';render();
 }
 
 if(window._firebaseReady)init();else window._onFirebaseReady=init;
 </script>
 
+</body>
+</html>
+</script>
 </body>
 </html>
