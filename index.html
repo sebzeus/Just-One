@@ -787,9 +787,14 @@ function handleRoomUpdate(rd){
     return;
   }
   if(phase==='compare'){
-    // Toujours reconstruire validClues depuis Firebase (fix partie 2+)
+    // Toujours reconstruire validClues depuis Firebase
     buildValidClues(Object.values(rd.clues||{}),rd.currentWord);
-    if(S.screen!=='compare'){S.screen='compare';render();}
+    if(isDevin){
+      // Le devin voit l'écran d'attente — renderCompare gère ça
+      if(S.screen!=='compare'){S.screen='compare';render();}
+    } else {
+      if(S.screen!=='compare'){S.screen='compare';render();}
+    }
     return;
   }
   if(phase==='guess'){
