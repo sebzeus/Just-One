@@ -494,7 +494,12 @@ function renderClueWriteMulti(){
   btn.onclick=async()=>{
     const clue=inp.value.trim().toUpperCase();
     btn.disabled=true;btn.textContent='Envoi…';
-    await submitMultiClue(clue);S.screen='clue_wait';render();
+    _transitioning=true;
+    await submitMultiClue(clue);
+    // Ne pas appeler render() ici — Firebase va déclencher handleRoomUpdate
+    // qui mettra à jour l'écran proprement
+    S.screen='clue_wait';
+    setTimeout(()=>render(),0);
   };
   return el;
 }
@@ -753,9 +758,12 @@ function cleanupMulti(){
   if(S.fbUnsubscribe){try{S.fbUnsubscribe();}catch{}S.fbUnsubscribe=null;}
 }
 
+let _transitioning=false;
+
 function handleRoomUpdate(rd){
   const phase=rd.phase;
   console.log('[JO] handleRoomUpdate phase='+phase+' screen='+S.screen+' myName='+S.myName+' devin='+rd.devinName+' isHost='+S.isHost);
+
   if(phase==='lobby'){S.screen='room_lobby';setTimeout(()=>render(),0);return;}
 
   const isDevin=rd.devinName===S.myName;
@@ -765,10 +773,11 @@ function handleRoomUpdate(rd){
   console.log('[JO] isDevin='+isDevin+' submitted='+submitted+'/'+total+' clues='+JSON.stringify(Object.keys(clues)));
 
   if(phase==='clues'){
-    if(S._lastRound!==rd.roundNum){ S._lastRound=rd.roundNum; S.validClues=[]; }
+    if(S._lastRound!==rd.roundNum){ S._lastRound=rd.roundNum; S.validClues=[]; _transitioning=false; }
     const allSubmitted=submitted>=total&&total>0;
     if(allSubmitted){
-      if(!isDevin){
+      if(!isDevin&&!_transitioning){
+        _transitioning=true;
         buildValidClues(Object.values(clues),rd.currentWord);
         const{db,ref,update}=window._fb;
         update(ref(db,`rooms/${S.roomCode}`),{phase:'compare'});
@@ -776,17 +785,14 @@ function handleRoomUpdate(rd){
       S.screen='clue_wait';setTimeout(()=>render(),0);
       return;
     }
-    if(isDevin){
-      S.screen='clue_wait';
-    } else if(clues[S.myName]){
-      S.screen='clue_wait';
-    } else {
-      S.screen='clue_write_multi';
-    }
+    if(isDevin) S.screen='clue_wait';
+    else if(clues[S.myName]) S.screen='clue_wait';
+    else S.screen='clue_write_multi';
     setTimeout(()=>render(),0);
     return;
   }
   if(phase==='compare'){
+    _transitioning=false;
     try{ buildValidClues(Object.values(rd.clues||{}),rd.currentWord); }catch(e){ console.log('[JO] buildValidClues error',e);S.validClues=[]; }
     console.log('[JO] forcing compare, current='+S.screen);
     S.screen='compare';
