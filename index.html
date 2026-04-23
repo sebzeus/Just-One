@@ -92,6 +92,8 @@
   .waiting-card{text-align:center;padding:32px 20px;}
   .big-emoji{font-size:3.5rem;margin-bottom:12px;}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
 </head>
 <body>
 <div class="app">
@@ -746,12 +748,14 @@ function cleanupMulti(){
 
 function handleRoomUpdate(rd){
   const phase=rd.phase;
+  console.log('[JO] handleRoomUpdate phase='+phase+' screen='+S.screen+' myName='+S.myName+' devin='+rd.devinName+' isHost='+S.isHost);
   if(phase==='lobby'){if(S.screen!=='room_lobby'){S.screen='room_lobby';}render();return;}
 
   const isDevin=rd.devinName===S.myName;
   const players=Object.values(rd.players||{});
   const clues=rd.clues||{};
   const submitted=Object.keys(clues).length, total=players.length-1;
+  console.log('[JO] isDevin='+isDevin+' submitted='+submitted+'/'+total+' clues='+JSON.stringify(Object.keys(clues)));
 
   if(phase==='clues'){
     // Réinitialiser validClues au début de chaque nouvelle manche
