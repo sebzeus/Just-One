@@ -736,9 +736,15 @@ async function joinRoom(code,name){
   const{db,ref,get,update}=window._fb;
   const snap=await get(ref(db,`rooms/${code}`));
   if(!snap.exists())return false;
-  const d=snap.val();if(d.phase!=='lobby')return false;
+  const d=snap.val();
+  // Permettre de rejoindre même si la partie a commencé (reconnexion)
+  if(d.phase==='gameover')return false;
   S.category=d.category||'Tous';
-  await update(ref(db,`rooms/${code}/players`),{[name]:{name,host:false}});
+  // Ajouter le joueur seulement s'il n'est pas déjà dans la liste
+  if(!d.players||!d.players[name]){
+    if(d.phase!=='lobby')return false; // nouveau joueur ne peut pas rejoindre une partie en cours
+    await update(ref(db,`rooms/${code}/players`),{[name]:{name,host:false}});
+  }
   listenRoom();return true;
 }
 
@@ -750,7 +756,7 @@ function cleanupMulti(){
 function handleRoomUpdate(rd){
   const phase=rd.phase;
   console.log('[JO] handleRoomUpdate phase='+phase+' screen='+S.screen+' myName='+S.myName+' devin='+rd.devinName+' isHost='+S.isHost);
-  if(phase==='lobby'){if(S.screen!=='room_lobby'){S.screen='room_lobby';}render();return;}
+  if(phase==='lobby'){S.screen='room_lobby';setTimeout(()=>render(),0);return;}
 
   const isDevin=rd.devinName===S.myName;
   const players=Object.values(rd.players||{});
@@ -759,50 +765,51 @@ function handleRoomUpdate(rd){
   console.log('[JO] isDevin='+isDevin+' submitted='+submitted+'/'+total+' clues='+JSON.stringify(Object.keys(clues)));
 
   if(phase==='clues'){
-    // Réinitialiser validClues au début de chaque nouvelle manche
     if(S._lastRound!==rd.roundNum){ S._lastRound=rd.roundNum; S.validClues=[]; }
-
     const allSubmitted=submitted>=total&&total>0;
-
-    // Si tout le monde a soumis, le premier joueur non-devin qui le détecte passe à compare
     if(allSubmitted){
       if(!isDevin){
         buildValidClues(Object.values(clues),rd.currentWord);
         const{db,ref,update}=window._fb;
-        // Utiliser une transaction-like : seulement si encore en phase clues
         update(ref(db,`rooms/${S.roomCode}`),{phase:'compare'});
       }
-      // Le devin attend juste
-      if(S.screen!=='clue_wait'){S.screen='clue_wait';render();}
+      S.screen='clue_wait';setTimeout(()=>render(),0);
       return;
     }
-
     if(isDevin){
-      if(S.screen!=='clue_wait'){S.screen='clue_wait';render();}
+      S.screen='clue_wait';
     } else if(clues[S.myName]){
-      if(S.screen!=='clue_wait'){S.screen='clue_wait';render();}
-      else render();
+      S.screen='clue_wait';
     } else {
-      if(S.screen!=='clue_write_multi'){S.screen='clue_write_multi';render();}
+      S.screen='clue_write_multi';
     }
+    setTimeout(()=>render(),0);
     return;
   }
   if(phase==='compare'){
-    try{ buildValidClues(Object.values(rd.clues||{}),rd.currentWord); }catch(e){ console.log('[JO] buildValidClues error',e); S.validClues=[]; }
+    try{ buildValidClues(Object.values(rd.clues||{}),rd.currentWord); }catch(e){ console.log('[JO] buildValidClues error',e);S.validClues=[]; }
+    console.log('[JO] forcing compare, current='+S.screen);
     S.screen='compare';
-    render();
+    setTimeout(()=>render(),0);
     return;
   }
   if(phase==='guess'){
-    // Toujours recharger activeClues depuis Firebase
-    if(rd.activeClues){
-      S.validClues=rd.activeClues.map(t=>({text:t,removed:false,manualRemoved:false}));
-    }
-    if(S.screen!=='guess'){S.screen='guess';render();}
+    if(rd.activeClues){ S.validClues=rd.activeClues.map(t=>({text:t,removed:false,manualRemoved:false})); }
+    S.screen='guess';
+    setTimeout(()=>render(),0);
     return;
   }
-  if(phase==='result'){S.roundResult=rd.lastResult||'skip';S.guess=rd.lastGuess||'';if(S.screen!=='result'){S.screen='result';render();}return;}
-  if(phase==='gameover'){if(S.screen!=='gameover'){S.screen='gameover';render();}return;}
+  if(phase==='result'){
+    S.roundResult=rd.lastResult||'skip';S.guess=rd.lastGuess||'';
+    S.screen='result';
+    setTimeout(()=>render(),0);
+    return;
+  }
+  if(phase==='gameover'){
+    S.screen='gameover';
+    setTimeout(()=>render(),0);
+    return;
+  }
 }
 
 async function startMultiGame(){
@@ -881,16 +888,24 @@ async function tryReconnect(){
     const snap=await get(ref(db,`rooms/${sess.roomCode}`));
     if(!snap.exists()){clearSession();return false;}
     const rd=snap.val();
-    // Ne pas reconnecter si la partie est terminée depuis longtemps
     if(rd.phase==='gameover'){clearSession();return false;}
-    Object.assign(S,{roomCode:sess.roomCode,myName:sess.myName,isHost:sess.isHost,mode:sess.mode||'multi',category:sess.category||'Tous'});
+    Object.assign(S,{roomCode:sess.roomCode,myName:sess.myName,isHost:sess.isHost,mode:'multi',category:sess.category||'Tous'});
     listenRoom();
     return true;
-  }catch{return false;}
+  }catch(e){console.log('[JO] reconnect error',e);return false;}
 }
 
-// Sauvegarder la session à chaque changement important
-const _origListenRoom=listenRoom;
+function listenRoom(){
+  saveSession();
+  S.mode='multi';
+  const{db,ref,onValue}=window._fb;
+  if(S.fbUnsubscribe){try{S.fbUnsubscribe();}catch{}}
+  S.fbUnsubscribe=onValue(ref(db,`rooms/${S.roomCode}`),snap=>{
+    if(!snap.exists())return;
+    S.roomData=snap.val();
+    handleRoomUpdate(S.roomData);
+  });
+}
 
 async function init(){
   const raw=localStorage.getItem('jo_session');
@@ -898,7 +913,6 @@ async function init(){
     try{
       const sess=JSON.parse(raw);
       if(sess.roomCode&&sess.myName){
-        // Afficher écran de reconnexion persistant
         const root=document.getElementById('root');
         root.innerHTML=`<div class="card" style="text-align:center;">
           <div style="font-size:3rem;margin-bottom:12px;">🔄</div>
@@ -924,17 +938,6 @@ async function init(){
     }catch{}
   }
   S.screen='home';render();
-}
-
-// Patch listenRoom pour sauvegarder la session
-function listenRoom(){
-  saveSession();
-  const{db,ref,onValue}=window._fb;
-  if(S.fbUnsubscribe){try{S.fbUnsubscribe();}catch{}}
-  S.fbUnsubscribe=onValue(ref(db,`rooms/${S.roomCode}`),snap=>{
-    if(!snap.exists())return;
-    S.roomData=snap.val();handleRoomUpdate(S.roomData);
-  });
 }
 
 if(window._firebaseReady)init();else window._onFirebaseReady=init;
