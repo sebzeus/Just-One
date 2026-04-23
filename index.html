@@ -378,12 +378,14 @@ function renderCluesIntro(){
 
 function renderPassPhone(){
   const next=S.clueOrder[S.currentClueStep];
+  const devin=`Joueur ${S.devinIndex+1}`;
   const el=div();
   el.innerHTML=`
     <div class="word-counter">Manche ${S.roundNum} / ${S.maxRounds}</div>
     <div class="phase-badge"><span>✍️ Phase indices</span></div>
     ${scoreBar()}
     <div class="card" style="text-align:center;">
+      <div style="background:#FFF0F3;border-radius:12px;padding:8px 14px;margin-bottom:16px;font-size:.85rem;font-weight:700;color:var(--red);">🙈 ${devin} ne doit pas regarder !</div>
       <div style="font-size:3rem;margin-bottom:12px;">📱</div>
       <div style="font-family:'Lilita One',cursive;font-size:1.5rem;color:var(--text);margin-bottom:8px;">Passe le téléphone !</div>
       <div style="font-size:.95rem;font-weight:600;color:var(--muted);margin-bottom:24px;line-height:1.6;">Remets le téléphone face cachée,<br>puis donne-le au prochain joueur.</div>
@@ -399,12 +401,14 @@ function renderPassPhone(){
 
 function renderClueTurn(){
   const step=S.currentClueStep, playerIdx=S.clueOrder[step], total=S.clueOrder.length, isLast=step===total-1;
+  const devin=`Joueur ${S.devinIndex+1}`;
   const el=div();
   el.innerHTML=`
     <div class="word-counter">Manche ${S.roundNum} / ${S.maxRounds}</div>
     <div class="phase-badge"><span>✍️ Joueur ${playerIdx+1} — Indice ${step+1}/${total}</span></div>
     ${scoreBar()}
     <div class="card">
+      <div style="background:#FFF0F3;border-radius:12px;padding:8px 14px;margin-bottom:14px;font-size:.85rem;font-weight:700;color:var(--red);text-align:center;">🙈 ${devin} ne doit pas regarder !</div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
         <div style="background:linear-gradient(135deg,var(--accent),var(--red));color:white;font-family:'Lilita One',cursive;font-size:1.1rem;padding:8px 18px;border-radius:50px;">Joueur ${playerIdx+1}</div>
         <div style="font-size:.85rem;font-weight:600;color:var(--muted);">écrit son indice secret</div>
@@ -492,6 +496,23 @@ function renderCompare(){
   const rd=S.roomData;
   const devinName=rd?rd.devinName:`Joueur ${S.devinIndex+1}`;
   const isHost=S.isHost||S.mode==='local';
+  const isDevin=rd?rd.devinName===S.myName:false;
+
+  // Le devin voit un écran d'attente
+  if(isDevin){
+    const el=div();
+    el.innerHTML=`
+      <div class="word-counter">Manche ${rd?rd.roundNum:S.roundNum} / ${rd?rd.maxRounds:S.maxRounds}</div>
+      <div class="phase-badge"><span>🔍 Vérification des indices</span></div>
+      <div class="card waiting-card">
+        <div class="big-emoji">🙈</div>
+        <div style="font-family:'Lilita One',cursive;font-size:1.4rem;margin-bottom:8px;">Pas encore !</div>
+        <div style="font-weight:600;color:var(--muted);margin-bottom:20px;font-size:.95rem;">Les autres éliminent les doublons…<br>Tu vas bientôt recevoir tes indices !</div>
+        <div class="waiting-dots"><span></span><span></span><span></span></div>
+      </div>`;
+    return el;
+  }
+
   const el=div();
   el.innerHTML=`
     <div class="word-counter">Manche ${rd?rd.roundNum:S.roundNum} / ${rd?rd.maxRounds:S.maxRounds}</div>
@@ -713,16 +734,10 @@ async function joinRoom(code,name){
   listenRoom();return true;
 }
 
-function listenRoom(){
-  const{db,ref,onValue}=window._fb;
-  if(S.fbUnsubscribe){try{S.fbUnsubscribe();}catch{}}
-  S.fbUnsubscribe=onValue(ref(db,`rooms/${S.roomCode}`),snap=>{
-    if(!snap.exists())return;
-    S.roomData=snap.val();handleRoomUpdate(S.roomData);
-  });
+function cleanupMulti(){
+  clearSession();
+  if(S.fbUnsubscribe){try{S.fbUnsubscribe();}catch{}S.fbUnsubscribe=null;}
 }
-
-function cleanupMulti(){if(S.fbUnsubscribe){try{S.fbUnsubscribe();}catch{}S.fbUnsubscribe=null;}}
 
 function handleRoomUpdate(rd){
   const phase=rd.phase;
@@ -734,23 +749,43 @@ function handleRoomUpdate(rd){
   const submitted=Object.keys(clues).length, total=players.length-1;
 
   if(phase==='clues'){
-    if(isDevin){if(S.screen!=='clue_wait'){S.screen='clue_wait';render();}}
-    else if(clues[S.myName]){
-      if(submitted>=total&&S.isHost){
-        buildValidClues(Object.values(clues),rd.currentWord);
-        const{db,ref,update}=window._fb;
-        update(ref(db,`rooms/${S.roomCode}`),{phase:'compare'});
-      } else if(S.screen!=='clue_wait'){S.screen='clue_wait';render();}
-      else render();
-    } else {if(S.screen!=='clue_write_multi'){S.screen='clue_write_multi';render();}}
+    // Réinitialiser validClues au début de chaque nouvelle manche
+    if(S._lastRound!==rd.roundNum){ S._lastRound=rd.roundNum; S.validClues=[]; }
+
+    if(isDevin){
+      if(S.screen!=='clue_wait'){S.screen='clue_wait';render();}
+      return;
+    }
+    if(clues[S.myName]){
+      // Cet utilisateur a déjà soumis son indice
+      if(submitted>=total){
+        // Tout le monde a soumis — l'hôte passe à compare (peu importe son écran actuel)
+        if(S.isHost){
+          buildValidClues(Object.values(clues),rd.currentWord);
+          const{db,ref,update}=window._fb;
+          update(ref(db,`rooms/${S.roomCode}`),{phase:'compare'});
+        } else {
+          if(S.screen!=='clue_wait'){S.screen='clue_wait';render();}
+          else render();
+        }
+      } else {
+        if(S.screen!=='clue_wait'){S.screen='clue_wait';render();}
+        else render();
+      }
+    } else {
+      if(S.screen!=='clue_write_multi'){S.screen='clue_write_multi';render();}
+    }
     return;
   }
   if(phase==='compare'){
-    if(S.screen!=='compare'){buildValidClues(Object.values(rd.clues||{}),rd.currentWord);S.screen='compare';render();}
+    // Toujours reconstruire validClues depuis Firebase (fix partie 2+)
+    buildValidClues(Object.values(rd.clues||{}),rd.currentWord);
+    if(S.screen!=='compare'){S.screen='compare';render();}
     return;
   }
   if(phase==='guess'){
-    if(rd.activeClues&&S.validClues.filter(c=>!c.removed&&!c.manualRemoved).length===0){
+    // Toujours recharger activeClues depuis Firebase
+    if(rd.activeClues){
       S.validClues=rd.activeClues.map(t=>({text:t,removed:false,manualRemoved:false}));
     }
     if(S.screen!=='guess'){S.screen='guess';render();}
@@ -817,9 +852,76 @@ function confetti(){
 }
 
 // ============================================================
-// INIT
+// INIT + RECONNECT
 // ============================================================
-function init(){S.screen='home';render();}
+function saveSession(){
+  if(!S.roomCode||!S.myName)return;
+  localStorage.setItem('jo_session',JSON.stringify({roomCode:S.roomCode,myName:S.myName,isHost:S.isHost,mode:S.mode,category:S.category}));
+}
+
+function clearSession(){ localStorage.removeItem('jo_session'); }
+
+async function tryReconnect(){
+  try{
+    const raw=localStorage.getItem('jo_session');
+    if(!raw)return false;
+    const sess=JSON.parse(raw);
+    if(!sess.roomCode||!sess.myName)return false;
+    const{db,ref,get}=window._fb;
+    const snap=await get(ref(db,`rooms/${sess.roomCode}`));
+    if(!snap.exists()){clearSession();return false;}
+    const rd=snap.val();
+    // Ne pas reconnecter si la partie est terminée depuis longtemps
+    if(rd.phase==='gameover'){clearSession();return false;}
+    Object.assign(S,{roomCode:sess.roomCode,myName:sess.myName,isHost:sess.isHost,mode:sess.mode||'multi',category:sess.category||'Tous'});
+    listenRoom();
+    return true;
+  }catch{return false;}
+}
+
+// Sauvegarder la session à chaque changement important
+const _origListenRoom=listenRoom;
+
+async function init(){
+  // Afficher un écran de reconnexion si session sauvegardée
+  const raw=localStorage.getItem('jo_session');
+  if(raw){
+    try{
+      const sess=JSON.parse(raw);
+      if(sess.roomCode&&sess.myName){
+        // Montrer écran de reconnexion
+        const root=document.getElementById('root');
+        root.innerHTML=`<div class="card" style="text-align:center;">
+          <div style="font-size:3rem;margin-bottom:12px;">🔄</div>
+          <div style="font-family:'Lilita One',cursive;font-size:1.5rem;margin-bottom:8px;">Reconnexion…</div>
+          <div style="font-weight:600;color:var(--muted);margin-bottom:16px;">Salle <strong>${sess.roomCode}</strong> — ${sess.myName}</div>
+          <div class="waiting-dots"><span></span><span></span><span></span></div>
+          <div class="btn-row" style="justify-content:center;margin-top:20px;">
+            <button class="btn btn-secondary" id="cancelRecoBtn">✖️ Nouvelle partie</button>
+          </div>
+        </div>`;
+        document.getElementById('cancelRecoBtn').onclick=()=>{clearSession();S.screen='home';render();};
+        const ok=await tryReconnect();
+        if(!ok){clearSession();S.screen='home';render();}
+        // Si ok, handleRoomUpdate prend le relais
+        return;
+      }
+    }catch{}
+  }
+  S.screen='home';render();
+}
+
+// Patch listenRoom pour sauvegarder la session
+function listenRoom(){
+  saveSession();
+  const{db,ref,onValue}=window._fb;
+  if(S.fbUnsubscribe){try{S.fbUnsubscribe();}catch{}}
+  S.fbUnsubscribe=onValue(ref(db,`rooms/${S.roomCode}`),snap=>{
+    if(!snap.exists())return;
+    S.roomData=snap.val();handleRoomUpdate(S.roomData);
+  });
+}
+
 if(window._firebaseReady)init();else window._onFirebaseReady=init;
 </script>
 
