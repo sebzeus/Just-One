@@ -126,17 +126,24 @@ if (window._onFirebaseReady) window._onFirebaseReady();
 // CONSTANTS
 // ============================================================
 const CATEGORIES = ['Tous','Animaux','Nourriture','Sport','Cinéma & Séries','Géographie','Métiers','Objets du quotidien','Histoire & Culture'];
-const FALLBACK = {
-  'Tous':['PIANO','REQUIN','VOLCAN','ASTRONAUTE','CHOCOLAT','BIBLIOTHEQUE','DAUPHIN','GIRAFE','PARACHUTE','CHAMPIGNON','SATELLITE','ACCORDEON','PIEUVRE','TONNERRE','BOUGIE','CACTUS','TOURNESOL','FANTOME','TRAMWAY','BAOBAB','LICORNE','KOALA','TRAMPOLINE','CAMELEON','BOOMERANG'],
-  'Animaux':['GIRAFE','DAUPHIN','PIEUVRE','FLAMANT','TATOU','ORNITHORYNQUE','CACHALOT','PANGOLIN','OKAPI','AXOLOTL','CAPYBARA','QUOKKA','TAPIR','PANDA','NARVAL','FENNEC','WOMBAT','LEMUR','TAMANOIR','DUGONG'],
-  'Nourriture':['CROISSANT','PAELLA','SUSHIS','GUACAMOLE','BRIOCHE','TIRAMISU','SOUFFLE','BOUILLABAISSE','CREPE','MACARONS','TACOS','FONDUE','RATATOUILLE','PROFITEROLE','GAZPACHO','CANNOLI','SAMOSA','BIBIMBAP','BAKLAVA','CHURROS'],
-  'Sport':['TENNIS','ESCRIME','PLONGEON','BOBSLEIGH','TRIATHLON','KAYAK','CURLING','BIATHLON','SQUASH','POLO','SUMO','KITESURF','FLECHETTES','CROQUET','PENTATHLON','LUGE','SKELETON','PELOTE','KABADDI','SEPAK'],
-  'Cinéma & Séries':['MATRIX','TITANIC','BATMAN','INCEPTION','AVATAR','FROZEN','SHREK','INTERSTELLAR','PARASITE','GODFATHER','CASABLANCA','GLADIATOR','JOKER','AVENGERS','ROCKY','ALIEN','PSYCHOSE','VERTIGO','INDIANA','SCARFACE'],
-  'Géographie':['AMAZONIE','ISLANDE','FUJI','SAHARA','VENISE','MARRAKECH','PATAGONIE','MALDIVES','YELLOWSTONE','GALAPAGOS','KILIMANJARO','EVEREST','AMAZONE','SIBERIE','TIBET','FIORDS','ATACAMA','OKAVANGO','BALKANS','KAMTCHATKA'],
-  'Métiers':['ARCHIVISTE','CERAMISTE','LUTINIER','FROMAGER','HORLOGER','METEOROLOGUE','SOMMELIER','ASTRONOME','MARAICHER','ZOOLOGUE','LUTHIER','SOUFFLEUR','BOURRELIER','TANNEUR','NOTAIRE','GLACIOLOGUE','CARTOGRAPHE','ENLUMINEUR','SAGEFEMME','CRIEUR'],
-  'Objets du quotidien':['ASPIRATEUR','THERMOS','CISEAUX','BOUSSOLE','MICROSCOPE','BAROMETRE','SABLIER','LOUPE','COMPAS','CADENAS','ENTONNOIR','BALANCIER','PINCE','FOURCHETTE','PASSOIRE','DECAPSULEUR','SPATULE','AGRAFEUSE','RAPPORTEUR','TROMBONE'],
-  'Histoire & Culture':['RENAISSANCE','CLEOPATRE','VERSAILLES','POMPEI','STONEHENGE','COLISEE','MACHUPICHU','LEONARD','NAPOLEON','REMBRANDT','MOZART','ARISTOTE','BOUDDHA','VIKING','AZTEQUE','PHARAON','TROIE','CRUSADES','CONQUISTADOR','TEMPLIER'],
+
+// Liste maître de 1000+ mots — source principale, l'IA est en complément
+const WORDS = {
+  'Animaux': ['GIRAFE','DAUPHIN','PIEUVRE','FLAMANT','TATOU','ORNITHORYNQUE','CACHALOT','PANGOLIN','OKAPI','AXOLOTL','CAPYBARA','QUOKKA','TAPIR','PANDA','NARVAL','FENNEC','WOMBAT','LEMUR','TAMANOIR','DUGONG','LOUTRE','JAGUAR','LYNX','GUEPARD','OCELOT','SERVAL','CARACAL','CIVETTE','GENET','BINTURONG','KINKAJOU','COATI','RATON','VISON','BELETTE','HERMINE','ZIBELINE','MOUFFETTE','BLAIREAU','BLAIREAUAMERICAN','RATEL','MANGOUSTE','MEERKATE','SURICATE','ZORILLE','FOURMILIER','PARESSEUX','TATOU','CABIAI','PACA','AGOUTI','VISCACHE','CHINCHILLA','DEGU','GERBILLE','HAMSTER','LEMMING','CAMPAGNOL','MULOT','MUSARAIGNE','TAUPE','HERISSON','TENREC','POTAMOCHERE','PHACOCHERE','TAPIR','RHINOCEROS','HIPPOPOTAME','GIRAFE','OKAPI','MOOSE','CARIBOU','RENNE','ELAN','CHEVREUIL','ISARD','BOUQUETIN','YACK','BISON','BUFFLE','ZEBU','GAUR','BANTENG','KOUPREY','ADDAX','ORYX','GEMSBOK','SPRINGBOK','IMPALA','GAZELLE','STEENBOK','DIKDIK','COBE','GNOU','BUBALE','SASSABY','HIPPOTRAGUE','ROAN','SABLE','BONGO','SITATUNGA','NYALA','KOUDOU','ELAN-DU-CAP','GUIB','ELAND','CÉPHALOPHE','POTAMOCHÈRE','AARDVARK','PANGOLIN','OURSON','GRIZZLY','KODIAK','OURS-POLAIRE','WOLVERINE','BELETTE','MARTRE','FOUINE','RATON-LAVEUR'],
+  'Nourriture': ['CROISSANT','PAELLA','SUSHIS','GUACAMOLE','BRIOCHE','TIRAMISU','SOUFFLE','BOUILLABAISSE','CREPE','MACARONS','TACOS','FONDUE','RATATOUILLE','PROFITEROLE','GAZPACHO','CANNOLI','SAMOSA','BIBIMBAP','BAKLAVA','CHURROS','QUICHE','LASAGNE','RISOTTO','GNOCCHI','CARBONARA','BRUSCHETTA','PANZANELLA','OSSOBUCO','SALTIMBOCCA','POLENTA','MINESTRONE','RIBOLLITA','CAPONATA','ARANCINI','SUPPLÌ','CROSTINO','FOCACCIA','CIABATTA','GRISSINI','PIADINA','BAGUETTE','KOUIGN','BRIOCHE','ECLAIR','MADELEINE','FINANCIER','OPERA','SAINT-HONORE','PARIS-BREST','MILLE-FEUILLE','RELIGIEUSE','CHOUQUETTE','PALMIER','TARTE-TATIN','CLAFOUTIS','FAR','FLAN','CANELE','KOUGLOF','STOLLEN','BROWNIE','CHEESECAKE','MUFFIN','SCONE','CRUMBLE','PAVLOVA','LAMINGTON','ANZAC','BAOZI','DUMPLINGS','WONTONS','RAVIOLI','TORTELLINI','PIEROGI','KNEDLICKY','PRETZEL','STRUDEL','SCHNITZEL','BRATWURST','CURRYWURST','SAUERBRATEN','ROULADEN','KASSLER','LEBERKASE','WEISSWURST','KNACKWURST','ANDOUILLE','SAUCISSON','RILLETTES','PÂTE','TERRINE','GALANTINE','BALLOTTINE','PAUPIETTE','QUENELLE','MOUSSELINE','VELOUTE','BISQUE','VICHYSSOISE','GASPACHO','BORSCHT','SOLYANKA','OKROSHKA','SHCHI','PLOV','LAGHMAN','MANTI','SHASHLIK','KEBAB','KOFTA','FATAYER','SHAWARMA','FALAFEL','HUMMUS','TABOULÉ','FATTOUSH','MEZZE'],
+  'Sport': ['TENNIS','ESCRIME','PLONGEON','BOBSLEIGH','TRIATHLON','KAYAK','CURLING','BIATHLON','SQUASH','POLO','SUMO','KITESURF','FLECHETTES','CROQUET','PENTATHLON','LUGE','SKELETON','PELOTE','KABADDI','AIKIDO','JUDO','KARATE','TAEKWONDO','KUNGFU','CAPOEIRA','SAMBO','LUTTE','BOXE','SAVATE','MUAYTHAI','KENDO','IAIDO','NAGINATA','KYUDO','KENJUTSU','JUJITSU','HAPKIDO','WINGCHUN','WUSHU','SANDA','PANKRATION','GRAPPLING','BJJ','MMA','SHOTPUT','MARTEAU','JAVELOT','DISQUE','DECATHLON','HEPTATHLON','SAUT-EN-HAUTEUR','SAUT-EN-LONGUEUR','TRIPLE-SAUT','PERCHE','MARATHON','RELAIS','HAIES','STEEPLECHASE','MARCHE','NATATION','NAGE-SYNCHRONISEE','WATER-POLO','PLONGEON','SURF','BODYBOARD','WAKEBOARD','WINDSURF','KITEBOARD','PARACHUTISME','BASEJUMP','DELTAPLANE','PARAPENTE','ULM','PLANNEUR','MONTGOLFIERE','RAFTING','CANYONING','ESCALADE','ALPINISME','SPELEOLOGIE','VTT','BMX','TRIAL','ENDURO','MOTOCROSS','SUPERCROSS','RALLYE','KARTING','FORMULE','MOTO','SUPERBIKE','ENDURANCE','CYCLISME','CRITERIUM','CLASSIQUE','CYCLOCROSS','PISTE','PISTARD','VELODROME'],
+  'Cinéma & Séries': ['MATRIX','TITANIC','BATMAN','INCEPTION','AVATAR','FROZEN','SHREK','INTERSTELLAR','PARASITE','GODFATHER','CASABLANCA','GLADIATOR','JOKER','AVENGERS','ROCKY','ALIEN','PSYCHOSE','VERTIGO','INDIANA','SCARFACE','BRAVEHEART','PLATOON','APOCALYPSE','DEPARTED','GOODFELLAS','CASINO','SHINING','EXORCISTE','HALLOWEEN','SCREAM','ALIEN','PREDATOR','TERMINATOR','ROBOCOP','TOTAL-RECALL','BLADE-RUNNER','TRON','GHOSTBUSTERS','GREMLINS','GOONIES','RETOUR-VERS','FERRIS-BUELLER','BREAKFAST-CLUB','PRETTY-WOMAN','DIRTYDANCING','FOOTLOOSE','FLASHDANCE','GREASE','SATURDAY-NIGHT','ROCKY','RAMBO','CONAN','LETHAL-WEAPON','DIE-HARD','BEVERLY-HILLS','POLICE-ACADEMY','AIRPLANE','NAKED-GUN','BLAZING-SADDLES','YOUNG-FRANKENSTEIN','LIFE-OF-BRIAN','HOLY-GRAIL','MEANING','BRAZIL','CLOCKWORK','FULL-METAL','APOCALYPSE-NOW','DEERHUNTER','TAXI-DRIVER','RAGING-BULL','NETWORK','CHINATOWN','FRENCH-CONNECTION','BULLITT','BONNIE-CLYDE','EASYRIDER','GRADUATE','BREAKFAST-TIFFANY','SABRINA','ROMAN-HOLIDAY','REAR-WINDOW','NORTH-NORTHWEST','STRANGERS','ROPE','DIAL-M','SUSPICION','REBECCA'],
+  'Géographie': ['AMAZONIE','ISLANDE','FUJI','SAHARA','VENISE','MARRAKECH','PATAGONIE','MALDIVES','YELLOWSTONE','GALAPAGOS','KILIMANJARO','EVEREST','AMAZONE','SIBERIE','TIBET','ATACAMA','OKAVANGO','BALKANS','KAMTCHATKA','SERENGETI','NAMIB','KALAHARI','MASAI-MARA','NGORONGORO','BWINDI','VIRUNGA','RWENZORI','KILIMANJARO','KENYA','ZAMBEZE','VICTORIA','TANGANYIKA','MALAWI','CHAD','NIGER','SENEGAL','GAMBIE','VOLTA','CONGO','KASAI','LUALABA','LOUALABA','LUKUGA','LUKENIE','SANKURU','LOMAMI','ARUWIMI','MONGALA','UBANGI','SANGHA','LIKOUALA','OUBANGUI','NILE','TIGRE','EUPHRATE','JOURDAIN','YARMOUK','LITANI','ORONTE','KHABOUR','KARKHA','KAROUN','HILMAND','OXUS','SYRDARYA','AMOURDARYA','ILI','TARIM','HUANG','YANGTZE','MEKONG','IRRAWADDY','SALWEEN','BRAHMAPOUTE','GANGE','INDUS','KABOUL','HARI-RUD','MURGAB','TEJEN','ATREK','KURA','ARAXE','RIONI','ENGURI','KODORI','BZIB','PSOU','KUBAN','TEREK','SUNZHA','ARGUN','CHECHEN','BELAYA','UFA','KAMA','VYATKA','VETLUGA','OKA','MOSKOVA'],
+  'Métiers': ['ARCHIVISTE','CERAMISTE','LUTINIER','FROMAGER','HORLOGER','METEOROLOGUE','SOMMELIER','ASTRONOME','MARAICHER','ZOOLOGUE','LUTHIER','SOUFFLEUR','BOURRELIER','TANNEUR','NOTAIRE','GLACIOLOGUE','CARTOGRAPHE','ENLUMINEUR','SAGEFEMME','CRIEUR','TONNELIER','CHARPENTIER','MENUISIER','EBENISTE','MARQUETEUR','SCULPTEUR','DOREUR','ARGENTIER','CISELEUR','GRAVEUR','FONDEUR','FERBLANTIER','PLOMBIER','COUVREUR','ARDOISIER','TUILIER','BRIQUETIER','PAVEUR','MOSAÏSTE','VITRIER','MARBRIER','CARRIER','TAILLEUR-PIERRE','STUCATEUR','PLAFONNIER','PEINTRE','DECORATEUR','TAPISSIER','SELLIER','MAROQUINIER','GANTIER','CHAPELIER','MODISTE','CORDONNIER','BOTTIER','SABOTIER','TAILLEUR','COUTURIER','BRODEUR','TRICOTEUR','TISSERAND','FILEUR','TEINTURIER','BLANCHISSEUR','REPASSEUR','NETTOYEUR','TONDEUR','PEAUSSIER','FOURREUR','PLUMASSIER','FLEURISTE','GRAINIER','PEPINIERISTE','HORTICULTEUR','ARBORICULTEUR','VITICULTEUR','OLÉICULTEUR','APICULTEUR','AVICULTEUR','PISCICULTEUR','OSTRÉICULTEUR','MYTILICULTEUR','SALINIER','CHARBONNIER','BÛCHERON','SCIEUR','SABOTIER','VANNIER','POTIER','FAÏENCIER','PORCELAINIER','VERRIER','SOUFFLEUR-VERRE'],
+  'Objets du quotidien': ['ASPIRATEUR','THERMOS','CISEAUX','BOUSSOLE','MICROSCOPE','BAROMETRE','SABLIER','LOUPE','COMPAS','CADENAS','ENTONNOIR','BALANCIER','PINCE','FOURCHETTE','PASSOIRE','DECAPSULEUR','SPATULE','AGRAFEUSE','RAPPORTEUR','TROMBONE','AGRAFE','ELASTIQUE','PUNAISE','EPINGLE','TROMBONE','ATTACHE','SCOTCH','COLLE','CUTTER','CISEAU','PERFORATRICE','RELIURE','CLASSEUR','POCHETTE','CHEMISE','DOSSIER','TRIEUR','CASIER','BANNE','TIROIR','BUFFET','BAHUT','ARMOIRE','COMMODE','SEMAINIER','BONNETIERE','PANETIERE','VAISSELIER','DRESSOIR','CREDENCE','ENCOIGNURE','VITRINE','ETAGERE','BIBLIOTHEQUE','RAYONNAGE','PRESENTOIR','CONSOLE','GUERIDON','TABOURET','POUF','OTTOMANE','MERIDIENNE','CAUSEUSE','BERGERE','VOLTAIRE','CHAUFFEUSE','MARQUISE','DUCHESSE','RECAMIER','SOFA','CANAPE','BANQUETTE','DIVAN','LIT','BERCEAU','BALDAQUIN','CIEL-DE-LIT','CADRE','TABLEAU','MIROIR','GLACE','PSYCHE','TRUMEAU','APPLIQUE','LUSTRE','LAMPADAIRE','LAMPE','BOUGEOIR','CHANDELIER','CANDÉLABRE','PHOTOPHORE','LANTERNE','FANAL','TORCHE','LAMPE-TEMPETE'],
+  'Histoire & Culture': ['RENAISSANCE','CLEOPATRE','VERSAILLES','POMPEI','STONEHENGE','COLISEE','MACHUPICHU','LEONARD','NAPOLEON','REMBRANDT','MOZART','ARISTOTE','BOUDDHA','VIKING','AZTEQUE','PHARAON','TROIE','CONQUISTADOR','TEMPLIER','CROISADES','INQUISITION','REFORMATION','REVOLUTION','REPUBLIQUE','EMPIRE','MONARCHIE','OLIGARCHIE','THEOCRACIE','DEMOCRATIE','ARISTOCRATIE','FEODALITE','SERVAGE','ESCLAVAGE','ABOLITION','SUFFRAGE','CONSTITUTION','PARLEMENT','SENAT','ASSEMBLEE','REFERENDUM','PLÉBISCITE','ELECTION','SCRUTIN','MANDATURE','IMPEACHMENT','VETO','LOBBYING','PROPAGANDE','CENSURE','PRESSE','MEDIA','INTERNET','SATELLITE','TELECOMMUNICATIONS','TELEGRAPHE','TELEPHONE','RADIO','TELEVISION','CINEMA','PHOTOGRAPHIE','LITHOGRAPHIE','IMPRIMERIE','MANUSCRIT','CODEX','PARCHEMIN','PAPYRUS','TABLETTE','CUNÉIFORME','HIEROGLYPHE','ALPHABET','RUNE','OGHAM','SINAÏ','ARAMÉEN','SANSKRIT','PALI','AVESTA','ZEND','PAHLAVI','SOGDIEN','KHOTANAIS','TOKHARE','VIEIL-OUÏGHOUR','MONGOL','MANDCHOU','TIBÉTAIN','BIRMAN','KHMER','JAVANAIS','TAGALOG','CEBUANO','MALAIS','SOUNDANAIS','MADURÉ','BATAK','MINANGKABAU'],
 };
+
+// Liste complète pour "Tous" = union de toutes les catégories
+WORDS['Tous'] = Object.values(WORDS).flat();
+
+// Compatibilité avec l'ancien nom FALLBACK
+const FALLBACK = WORDS;
 
 // ============================================================
 // STATE
@@ -162,9 +169,21 @@ function getHistory(){ try{ return JSON.parse(localStorage.getItem('jo_hist')||'
 function addHistory(words){ const h=[...new Set([...getHistory(),...words.map(w=>w.toUpperCase())])]; localStorage.setItem('jo_hist',JSON.stringify(h)); }
 function clearHistory(){ localStorage.removeItem('jo_hist'); }
 
-// ============================================================
-// AI WORDS
-// ============================================================
+// Retourne les mots disponibles (non déjà joués) pour une catégorie
+function getAvailableWords(category){
+  const hist=new Set(getHistory());
+  const list=WORDS[category]||WORDS['Tous'];
+  const available=list.filter(w=>!hist.has(w));
+  // Si moins de 20 mots dispo, on réinitialise silencieusement l'historique pour cette catégorie
+  if(available.length<20){
+    // Garder seulement les mots des autres catégories dans l'historique
+    const otherWords=new Set(Object.entries(WORDS).filter(([k])=>k!==category&&k!=='Tous').flatMap(([,v])=>v));
+    const newHist=getHistory().filter(w=>otherWords.has(w));
+    localStorage.setItem('jo_hist',JSON.stringify(newHist));
+    return shuffle([...list]);
+  }
+  return shuffle(available);
+}
 async function fetchWords(category, count=25){
   const hist=getHistory();
   const histNote=hist.length>0?`\nMots DÉJÀ joués à NE PAS reproduire : ${hist.slice(-120).join(', ')}`:'';
@@ -258,7 +277,11 @@ function renderSetupLocal(){
   el.querySelector('#back').onclick=()=>{S.screen='home';render();};
   el.querySelector('#start').onclick=async()=>{
     S.screen='clues_intro';S.loading=true;S.roundNum=1;S.devinIndex=0;S.score={correct:0,wrong:0,skip:0};render();
-    try{S.wordList=await fetchWords(S.category,25);}catch{S.wordList=shuffle([...(FALLBACK[S.category]||FALLBACK['Tous'])]);}
+    S.wordList=getAvailableWords(S.category);
+    // Compléter avec l'IA si moins de 25 mots
+    if(S.wordList.length<25){
+      try{const ai=await fetchWords(S.category,25);S.wordList=[...new Set([...S.wordList,...ai])];}catch{}
+    }
     S.wordIndex=0;S.currentWord=S.wordList[0];addHistory([S.currentWord]);initClueOrder();S.loading=false;render();
   };
   return el;
@@ -364,31 +387,29 @@ function renderCluesIntro(){
   el.querySelector('#skipRound').onclick=()=>{S.roundResult='skip';S.score.skip++;nextRoundLocal();};
   el.querySelector('#changeWord').onclick=async()=>{
     S.loading=true;render();
-    const hist=getHistory();
+    const hist=new Set(getHistory());
     let found=false;
     for(let i=1;i<S.wordList.length;i++){
       const idx=(S.wordIndex+i)%S.wordList.length;
-      if(!hist.includes(S.wordList[idx])){S.wordIndex=idx;S.currentWord=S.wordList[idx];found=true;break;}
+      if(!hist.has(S.wordList[idx])){S.wordIndex=idx;S.currentWord=S.wordList[idx];found=true;break;}
     }
     if(!found){
-      try{S.wordList=await fetchWords(S.category,25);}catch{S.wordList=shuffle([...(FALLBACK[S.category]||FALLBACK['Tous'])]);}
+      S.wordList=getAvailableWords(S.category);
       S.wordIndex=0;S.currentWord=S.wordList[0];
     }
     addHistory([S.currentWord]);initClueOrder();S.loading=false;render();
   };
   el.querySelector('#excludeWord').onclick=async()=>{
-    // Ajouter le mot à l'historique pour l'exclure définitivement
     addHistory([S.currentWord]);
-    // Puis changer de mot
     S.loading=true;render();
-    const hist=getHistory();
+    const hist=new Set(getHistory());
     let found=false;
     for(let i=1;i<S.wordList.length;i++){
       const idx=(S.wordIndex+i)%S.wordList.length;
-      if(!hist.includes(S.wordList[idx])){S.wordIndex=idx;S.currentWord=S.wordList[idx];found=true;break;}
+      if(!hist.has(S.wordList[idx])){S.wordIndex=idx;S.currentWord=S.wordList[idx];found=true;break;}
     }
     if(!found){
-      try{S.wordList=await fetchWords(S.category,25);}catch{S.wordList=shuffle([...(FALLBACK[S.category]||FALLBACK['Tous'])]);}
+      S.wordList=getAvailableWords(S.category);
       S.wordIndex=0;S.currentWord=S.wordList[0];
     }
     addHistory([S.currentWord]);initClueOrder();S.loading=false;render();
@@ -578,7 +599,17 @@ function renderCompare(){
     const chip=document.createElement('div');
     chip.className='clue-chip '+(clue.removed||clue.manualRemoved?'removed':'active');
     chip.textContent=clue.text; chip.style.cursor='pointer';
-    chip.onclick=()=>{if(!clue.removed){clue.manualRemoved=!clue.manualRemoved;render();}};
+    chip.onclick=()=>{
+      if(clue.removed) return;
+      clue.manualRemoved=!clue.manualRemoved;
+      chip.className='clue-chip '+(clue.manualRemoved?'removed':'active');
+      // En mode multi, synchroniser dans Firebase
+      if(S.mode==='multi'){
+        const manualRemoved=S.validClues.filter(c=>c.manualRemoved).map(c=>c.text);
+        const{db,ref,update}=window._fb;
+        update(ref(db,`rooms/${S.roomCode}`),{manualRemoved});
+      }
+    };
     grid.appendChild(chip);
   });
   const sg=el.querySelector('#showGuess');
@@ -711,14 +742,15 @@ function renderGameover(){
   if(rb) rb.onclick=async()=>{
     if(S.mode==='local'){
       S.loading=true;S.screen='clues_intro';S.roundNum=1;S.devinIndex=0;S.score={correct:0,wrong:0,skip:0};render();
-      try{S.wordList=await fetchWords(S.category,25);}catch{S.wordList=shuffle([...(FALLBACK[S.category]||FALLBACK['Tous'])]);}
+      S.wordList=getAvailableWords(S.category);
+      if(S.wordList.length<25){try{const ai=await fetchWords(S.category,25);S.wordList=[...new Set([...S.wordList,...ai])];}catch{}}
       S.wordIndex=0;S.currentWord=S.wordList[0];addHistory([S.currentWord]);initClueOrder();S.loading=false;render();
     } else startMultiGame();
   };
   return el;
 }
 
-function renderLoading(msg='Génération des mots par l\'IA…'){
+function renderLoading(msg='Génération des mots…'){
   const el=div();
   el.innerHTML=`<div class="card loading-state"><div class="spinner"></div><div style="font-weight:700;color:var(--muted);">${msg}</div></div>`;
   return el;
@@ -854,12 +886,18 @@ function renderMultiFromFirebase(rd){
       return;
     }
     // Doit saisir son indice
+    const alreadyWriting=root.querySelector('#clueIn');
+    if(alreadyWriting) return; // ne pas interrompre la saisie en cours
     root.innerHTML='';root.appendChild(renderClueWriteMulti(rd));
     return;
   }
 
   if(phase==='compare'){
+    // Reconstruire validClues depuis Firebase (indices + suppressions manuelles)
     try{buildValidClues(Object.values(rd.clues||{}),rd.currentWord);}catch{S.validClues=[];}
+    // Appliquer les suppressions manuelles stockées dans Firebase
+    const manualRemoved=rd.manualRemoved||[];
+    S.validClues.forEach(c=>{if(manualRemoved.includes(c.text))c.manualRemoved=true;});
     root.innerHTML='';root.appendChild(renderCompare());
     return;
   }
@@ -900,14 +938,16 @@ function cleanupMulti(){
 
 async function startMultiGame(){
   const{db,ref,update}=window._fb;
-  let wl=[];
-  try{wl=await fetchWords(S.category,25);}catch{wl=shuffle([...(FALLBACK[S.category]||FALLBACK['Tous'])]);}
+  let wl=getAvailableWords(S.category);
+  if(wl.length<25){
+    try{const ai=await fetchWords(S.category,25);wl=[...new Set([...wl,...ai])];}catch{}
+  }
   const rd=S.roomData||{},players=Object.keys(rd.players||{}),devinName=players[0];
   addHistory([wl[0]]);
   await update(ref(db,`rooms/${S.roomCode}`),{
     phase:'clues',wordList:wl,wordIndex:0,currentWord:wl[0],
     roundNum:1,maxRounds:rd.maxRounds||13,devinName,
-    clues:{},score:{correct:0,wrong:0,skip:0},activeClues:[],lastResult:null,lastGuess:'',
+    clues:{},score:{correct:0,wrong:0,skip:0},activeClues:[],lastResult:null,lastGuess:'',manualRemoved:[],
   });
 }
 
@@ -937,7 +977,7 @@ async function nextRoundMulti(){
   await update(ref(db,`rooms/${S.roomCode}`),{
     phase:'clues',wordIndex:wi,currentWord:wl[wi],
     roundNum:(rd.roundNum||1)+1,devinName:newDevin,
-    clues:{},activeClues:[],lastResult:null,lastGuess:'',
+    clues:{},activeClues:[],lastResult:null,lastGuess:'',manualRemoved:[],
   });
 }
 
