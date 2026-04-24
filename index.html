@@ -169,19 +169,15 @@ function getHistory(){ try{ return JSON.parse(localStorage.getItem('jo_hist')||'
 function addHistory(words){ const h=[...new Set([...getHistory(),...words.map(w=>w.toUpperCase())])]; localStorage.setItem('jo_hist',JSON.stringify(h)); }
 function clearHistory(){ localStorage.removeItem('jo_hist'); }
 
-// Retourne les mots disponibles (non déjà joués) pour une catégorie
+// Retourne les mots disponibles pour une catégorie
+// — exclut uniquement les mots marqués manuellement "déjà vus"
+// — mélange aléatoirement à chaque appel
 function getAvailableWords(category){
-  const hist=new Set(getHistory());
+  const excluded=new Set(getHistory());
   const list=WORDS[category]||WORDS['Tous'];
-  const available=list.filter(w=>!hist.has(w));
-  // Si moins de 20 mots dispo, on réinitialise silencieusement l'historique pour cette catégorie
-  if(available.length<20){
-    // Garder seulement les mots des autres catégories dans l'historique
-    const otherWords=new Set(Object.entries(WORDS).filter(([k])=>k!==category&&k!=='Tous').flatMap(([,v])=>v));
-    const newHist=getHistory().filter(w=>otherWords.has(w));
-    localStorage.setItem('jo_hist',JSON.stringify(newHist));
-    return shuffle([...list]);
-  }
+  const available=list.filter(w=>!excluded.has(w));
+  // Si trop peu de mots disponibles, on ignore les exclusions
+  if(available.length<30) return shuffle([...list]);
   return shuffle(available);
 }
 async function fetchWords(category, count=25){
@@ -282,7 +278,7 @@ function renderSetupLocal(){
     if(S.wordList.length<25){
       try{const ai=await fetchWords(S.category,25);S.wordList=[...new Set([...S.wordList,...ai])];}catch{}
     }
-    S.wordIndex=0;S.currentWord=S.wordList[0];addHistory([S.currentWord]);initClueOrder();S.loading=false;render();
+    S.wordIndex=0;S.currentWord=S.wordList[0];initClueOrder();S.loading=false;render();
   };
   return el;
 }
@@ -377,43 +373,12 @@ function renderCluesIntro(){
         <div style="font-family:'Lilita One',cursive;font-size:1.4rem;color:var(--accent);">Joueur ${first+1} 👇</div>
       </div>
       <button class="btn btn-primary" id="startClues" style="width:100%;justify-content:center;">✅ ${devin} ne regarde plus — Commencer</button>
-      <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+      <div style="margin-top:12px;text-align:center;">
         <button class="btn btn-secondary" id="skipRound" style="font-size:.85rem;">⏭️ Passer ce mot</button>
-        <button class="btn btn-secondary" id="changeWord" style="font-size:.85rem;">🔄 Changer de mot</button>
-        <button class="btn btn-secondary" id="excludeWord" style="font-size:.85rem;">🚫 On l'a déjà eu</button>
       </div>
     </div>`;
   el.querySelector('#startClues').onclick=()=>{S.currentClueStep=0;S.screen='clue_turn';render();};
   el.querySelector('#skipRound').onclick=()=>{S.roundResult='skip';S.score.skip++;nextRoundLocal();};
-  el.querySelector('#changeWord').onclick=async()=>{
-    S.loading=true;render();
-    const hist=new Set(getHistory());
-    let found=false;
-    for(let i=1;i<S.wordList.length;i++){
-      const idx=(S.wordIndex+i)%S.wordList.length;
-      if(!hist.has(S.wordList[idx])){S.wordIndex=idx;S.currentWord=S.wordList[idx];found=true;break;}
-    }
-    if(!found){
-      S.wordList=getAvailableWords(S.category);
-      S.wordIndex=0;S.currentWord=S.wordList[0];
-    }
-    addHistory([S.currentWord]);initClueOrder();S.loading=false;render();
-  };
-  el.querySelector('#excludeWord').onclick=async()=>{
-    addHistory([S.currentWord]);
-    S.loading=true;render();
-    const hist=new Set(getHistory());
-    let found=false;
-    for(let i=1;i<S.wordList.length;i++){
-      const idx=(S.wordIndex+i)%S.wordList.length;
-      if(!hist.has(S.wordList[idx])){S.wordIndex=idx;S.currentWord=S.wordList[idx];found=true;break;}
-    }
-    if(!found){
-      S.wordList=getAvailableWords(S.category);
-      S.wordIndex=0;S.currentWord=S.wordList[0];
-    }
-    addHistory([S.currentWord]);initClueOrder();S.loading=false;render();
-  };
   return el;
 }
 
@@ -465,6 +430,10 @@ function renderClueTurn(){
       <div style="background:#FFF8F0;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:.82rem;color:#7B5800;font-weight:600;line-height:1.5;">
         ⚠️ Un seul mot • Pas le mot secret • Pas de déclinaison
       </div>
+      ${step===0?`<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="btn btn-secondary" id="changeWord" style="font-size:.82rem;flex:1;">🔄 Changer de mot</button>
+        <button class="btn btn-secondary" id="excludeWord" style="font-size:.82rem;flex:1;">🚫 Déjà eu</button>
+      </div>`:''}
       <button class="btn btn-primary" id="confirmClue" style="width:100%;justify-content:center;" disabled>
         ${isLast?'✅ Valider et comparer les indices':'✅ Valider — Joueur suivant'}
       </button>
@@ -481,6 +450,24 @@ function renderClueTurn(){
     else{S.currentClueStep++;S.screen='pass_phone';}
     render();
   };
+  if(step===0){
+    const doChange=async(exclude)=>{
+      if(exclude) addHistory([S.currentWord]);
+      S.loading=true;render();
+      const hist=new Set(getHistory());
+      let found=false;
+      for(let i=1;i<S.wordList.length;i++){
+        const idx=(S.wordIndex+i)%S.wordList.length;
+        if(!hist.has(S.wordList[idx])){S.wordIndex=idx;S.currentWord=S.wordList[idx];found=true;break;}
+      }
+      if(!found){S.wordList=getAvailableWords(S.category);S.wordIndex=0;S.currentWord=S.wordList[0];}
+      initClueOrder();S.loading=false;render();
+    };
+    const cw=el.querySelector('#changeWord');
+    const ew=el.querySelector('#excludeWord');
+    if(cw) cw.onclick=()=>doChange(false);
+    if(ew) ew.onclick=()=>doChange(true);
+  }
   return el;
 }
 
@@ -744,7 +731,7 @@ function renderGameover(){
       S.loading=true;S.screen='clues_intro';S.roundNum=1;S.devinIndex=0;S.score={correct:0,wrong:0,skip:0};render();
       S.wordList=getAvailableWords(S.category);
       if(S.wordList.length<25){try{const ai=await fetchWords(S.category,25);S.wordList=[...new Set([...S.wordList,...ai])];}catch{}}
-      S.wordIndex=0;S.currentWord=S.wordList[0];addHistory([S.currentWord]);initClueOrder();S.loading=false;render();
+      S.wordIndex=0;S.currentWord=S.wordList[0];initClueOrder();S.loading=false;render();
     } else startMultiGame();
   };
   return el;
@@ -779,7 +766,7 @@ function buildValidClues(cluesArr,word){
 function nextRoundLocal(){
   S.roundNum++;S.wordIndex++;
   if(S.wordIndex>=S.wordList.length){S.wordIndex=0;S.wordList=shuffle(S.wordList);}
-  S.currentWord=S.wordList[S.wordIndex];addHistory([S.currentWord]);
+  S.currentWord=S.wordList[S.wordIndex];
   S.devinIndex=(S.devinIndex+1)%S.players;
   S.guess='';S.roundResult=null;initClueOrder();S.screen='clues_intro';render();
 }
@@ -943,7 +930,7 @@ async function startMultiGame(){
     try{const ai=await fetchWords(S.category,25);wl=[...new Set([...wl,...ai])];}catch{}
   }
   const rd=S.roomData||{},players=Object.keys(rd.players||{}),devinName=players[0];
-  addHistory([wl[0]]);
+  
   await update(ref(db,`rooms/${S.roomCode}`),{
     phase:'clues',wordList:wl,wordIndex:0,currentWord:wl[0],
     roundNum:1,maxRounds:rd.maxRounds||13,devinName,
@@ -973,7 +960,7 @@ async function nextRoundMulti(){
   const newDevin=players[(players.indexOf(rd.devinName)+1)%players.length];
   const wl=rd.wordList||[];
   let wi=(rd.wordIndex||0)+1;if(wi>=wl.length)wi=0;
-  addHistory([wl[wi]]);
+  
   await update(ref(db,`rooms/${S.roomCode}`),{
     phase:'clues',wordIndex:wi,currentWord:wl[wi],
     roundNum:(rd.roundNum||1)+1,devinName:newDevin,
